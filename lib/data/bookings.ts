@@ -171,7 +171,7 @@ export async function updateBooking(
   return data;
 }
 
-export async function deleteBooking(id: string) {
+export async function deleteBooking(id: string): Promise<void> {
   const supabase = await createClient();
   const { error } = await supabase.from("bookings").delete().eq("id", id);
 

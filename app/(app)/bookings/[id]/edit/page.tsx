@@ -42,7 +42,7 @@ export default async function EditBookingPage({
   ]);
 
   if (!bookingResult) {
-    notFound();
+    return notFound();
   }
 
   const booking: BookingRow = bookingResult;

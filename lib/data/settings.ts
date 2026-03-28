@@ -9,7 +9,7 @@ import {
 
 export type SettingsRow = Database["public"]["Tables"]["settings"]["Row"];
 
-export async function getSettings() {
+export async function getSettings(): Promise<SettingsRow | null> {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("settings")
@@ -24,7 +24,7 @@ export async function getSettings() {
   return data;
 }
 
-export async function upsertSettings(input: SettingsInput) {
+export async function upsertSettings(input: SettingsInput): Promise<SettingsRow> {
   const payload = settingsSchema.parse(input);
   const supabase = await createClient();
   const { data, error } = await supabase

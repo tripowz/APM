@@ -89,7 +89,7 @@ export function ExpenseForm({
             <option value="" disabled>
               {hasApartments ? "Select apartment" : "No apartments available"}
             </option>
-            {apartments.map((apartment) => (
+            {apartments.map((apartment: ApartmentOption) => (
               <option key={apartment.id} value={apartment.id}>
                 {apartment.title}
               </option>

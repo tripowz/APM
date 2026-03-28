@@ -59,7 +59,7 @@ export function MonthCalendar({
         ))}
 
         {grid.map((day) => {
-          const dayBookings = bookings.filter((booking) =>
+          const dayBookings = bookings.filter((booking: CalendarBooking) =>
             isDateWithinBooking(day.iso, booking.check_in, booking.check_out)
           );
 
@@ -87,7 +87,7 @@ export function MonthCalendar({
               </div>
 
               <div className="flex flex-col gap-2">
-                {dayBookings.slice(0, 3).map((booking) => (
+                {dayBookings.slice(0, 3).map((booking: CalendarBooking) => (
                   <Link
                     key={`${day.iso}-${booking.id}`}
                     href={`/bookings/${booking.id}/edit?${new URLSearchParams({
@@ -125,7 +125,7 @@ export function MonthCalendar({
             </p>
           </div>
         ) : (
-          bookings.map((booking) => (
+          bookings.map((booking: CalendarBooking) => (
             <Link
               key={booking.id}
               href={`/bookings/${booking.id}/edit?${new URLSearchParams({

@@ -1,6 +1,4 @@
-type RequiredEnvKey =
-  | "NEXT_PUBLIC_SUPABASE_URL"
-  | "NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY";
+type RequiredEnvKey = "NEXT_PUBLIC_SUPABASE_URL";
 
 function requireEnv(key: RequiredEnvKey) {
   const value = process.env[key];
@@ -12,10 +10,22 @@ function requireEnv(key: RequiredEnvKey) {
   return value;
 }
 
+function requireSupabasePublicKey() {
+  const value =
+    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ??
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+  if (!value) {
+    throw new Error(
+      "Missing environment variable: NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY or NEXT_PUBLIC_SUPABASE_ANON_KEY"
+    );
+  }
+
+  return value;
+}
+
 export const supabaseUrl = requireEnv("NEXT_PUBLIC_SUPABASE_URL");
-export const supabasePublishableKey = requireEnv(
-  "NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY"
-);
+export const supabasePublishableKey = requireSupabasePublicKey();
 
 export function hasServiceRoleKey() {
   return Boolean(process.env.SUPABASE_SERVICE_ROLE_KEY);

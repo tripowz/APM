@@ -141,67 +141,67 @@ export async function getDashboardMetrics(): Promise<DashboardMetrics> {
   const expenses: ExpenseRow[] = expensesResult;
 
   const activeApartments: ApartmentRow[] = apartments.filter(
-    (apartment) => apartment.status === "active"
+    (apartment: ApartmentRow) => apartment.status === "active"
   );
   const occupiedTodayApartmentIds = new Set(
     bookings
       .filter(
-        (booking) =>
+        (booking: BookingRow) =>
           isBlockingBookingStatus(booking.booking_status) &&
           booking.check_in <= today &&
           booking.check_out > today
       )
-      .map((booking) => booking.apartment_id)
+      .map((booking: BookingRow) => booking.apartment_id)
   );
 
-  const occupiedToday = activeApartments.filter((apartment) =>
+  const occupiedToday = activeApartments.filter((apartment: ApartmentRow) =>
     occupiedTodayApartmentIds.has(apartment.id)
   ).length;
 
   const monthlyRevenue = bookings
     .filter(
-      (booking) =>
+      (booking: BookingRow) =>
         isRevenueBookingStatus(booking.booking_status) &&
         booking.check_in >= currentMonthFrom &&
         booking.check_in < currentMonthToExclusive
     )
-    .reduce((sum, booking) => sum + Number(booking.total_amount), 0);
+    .reduce((sum, booking: BookingRow) => sum + Number(booking.total_amount), 0);
 
   const monthlyExpenses = expenses
-    .filter((expense) =>
+    .filter((expense: ExpenseRow) =>
       expense.expense_date >= currentMonthFrom &&
       expense.expense_date < currentMonthToExclusive
     )
-    .reduce((sum, expense) => sum + Number(expense.amount), 0);
+    .reduce((sum, expense: ExpenseRow) => sum + Number(expense.amount), 0);
 
   const recentBookings: BookingRow[] = bookings
-    .filter((booking) => booking.booking_status !== "cancelled")
-    .sort((a, b) => b.created_at.localeCompare(a.created_at))
+    .filter((booking: BookingRow) => booking.booking_status !== "cancelled")
+    .sort((a: BookingRow, b: BookingRow) => b.created_at.localeCompare(a.created_at))
     .slice(0, 6);
 
   const apartmentPerformance: DashboardMetrics["apartmentPerformance"] =
-    activeApartments.map((apartment) => {
-    const apartmentBookings: BookingRow[] = bookings.filter(
-      (booking) => booking.apartment_id === apartment.id
-    );
-    const apartmentRevenue = apartmentBookings
-      .filter((booking) => isRevenueBookingStatus(booking.booking_status))
-      .reduce((sum, booking) => sum + Number(booking.total_amount), 0);
-    const apartmentExpenses = expenses
-      .filter((expense) => expense.apartment_id === apartment.id)
-      .reduce((sum, expense) => sum + Number(expense.amount), 0);
+    activeApartments.map((apartment: ApartmentRow) => {
+      const apartmentBookings: BookingRow[] = bookings.filter(
+        (booking: BookingRow) => booking.apartment_id === apartment.id
+      );
+      const apartmentRevenue = apartmentBookings
+        .filter((booking: BookingRow) => isRevenueBookingStatus(booking.booking_status))
+        .reduce((sum, booking: BookingRow) => sum + Number(booking.total_amount), 0);
+      const apartmentExpenses = expenses
+        .filter((expense: ExpenseRow) => expense.apartment_id === apartment.id)
+        .reduce((sum, expense: ExpenseRow) => sum + Number(expense.amount), 0);
 
       return {
-      apartmentId: apartment.id,
-      apartmentTitle: apartment.title,
-      bookingsCount: apartmentBookings.filter(
-        (booking) => booking.booking_status !== "cancelled"
-      ).length,
-      revenue: apartmentRevenue,
-      expenses: apartmentExpenses,
-      profit: apartmentRevenue - apartmentExpenses
+        apartmentId: apartment.id,
+        apartmentTitle: apartment.title,
+        bookingsCount: apartmentBookings.filter(
+          (booking: BookingRow) => booking.booking_status !== "cancelled"
+        ).length,
+        revenue: apartmentRevenue,
+        expenses: apartmentExpenses,
+        profit: apartmentRevenue - apartmentExpenses
       };
-  });
+    });
 
   const revenueTrend: DashboardMetrics["revenueTrend"] = Array.from({
     length: 6
@@ -216,12 +216,12 @@ export async function getDashboardMetrics(): Promise<DashboardMetrics> {
     const toExclusive = toIsoDate(next);
     const total = bookings
       .filter(
-        (booking) =>
+        (booking: BookingRow) =>
           isRevenueBookingStatus(booking.booking_status) &&
           booking.check_in >= from &&
           booking.check_in < toExclusive
       )
-      .reduce((sum, booking) => sum + Number(booking.total_amount), 0);
+      .reduce((sum, booking: BookingRow) => sum + Number(booking.total_amount), 0);
 
     return {
       label: monthDate.toLocaleString("en-US", {
@@ -236,13 +236,13 @@ export async function getDashboardMetrics(): Promise<DashboardMetrics> {
     occupiedToday,
     freeToday: Math.max(activeApartments.length - occupiedToday, 0),
     upcomingCheckIns: bookings.filter(
-      (booking) =>
+      (booking: BookingRow) =>
         booking.booking_status !== "cancelled" &&
         booking.check_in >= today &&
         booking.check_in < sevenDaysAhead
     ).length,
     upcomingCheckOuts: bookings.filter(
-      (booking) =>
+      (booking: BookingRow) =>
         booking.booking_status !== "cancelled" &&
         booking.check_out > today &&
         booking.check_out <= sevenDaysAhead
@@ -251,7 +251,9 @@ export async function getDashboardMetrics(): Promise<DashboardMetrics> {
     monthlyExpenses,
     monthlyProfit: monthlyRevenue - monthlyExpenses,
     recentBookings,
-    apartmentPerformance: apartmentPerformance.sort((a, b) => b.profit - a.profit),
+    apartmentPerformance: apartmentPerformance.sort(
+      (a, b) => b.profit - a.profit
+    ),
     revenueTrend
   };
 }
@@ -271,7 +273,7 @@ export async function getReportMetrics(
   const bookings: BookingRow[] = bookingsResult;
   const expenses: ExpenseRow[] = expensesResult;
 
-  const periodBookings: BookingRow[] = bookings.filter((booking) => {
+  const periodBookings: BookingRow[] = bookings.filter((booking: BookingRow) => {
     const matchesApartment =
       !normalized.apartmentId || booking.apartment_id === normalized.apartmentId;
     const matchesStatus =
@@ -283,7 +285,7 @@ export async function getReportMetrics(
     return matchesApartment && matchesStatus && matchesPeriod;
   });
 
-  const occupancyBookings: BookingRow[] = bookings.filter((booking) => {
+  const occupancyBookings: BookingRow[] = bookings.filter((booking: BookingRow) => {
     const matchesApartment =
       !normalized.apartmentId || booking.apartment_id === normalized.apartmentId;
     const matchesStatus =
@@ -299,7 +301,7 @@ export async function getReportMetrics(
     return matchesApartment && matchesStatus && matchesPeriod;
   });
 
-  const filteredExpenses: ExpenseRow[] = expenses.filter((expense) => {
+  const filteredExpenses: ExpenseRow[] = expenses.filter((expense: ExpenseRow) => {
     const matchesApartment =
       !normalized.apartmentId || expense.apartment_id === normalized.apartmentId;
     const matchesPeriod = isWithinInclusiveRange(
@@ -312,22 +314,24 @@ export async function getReportMetrics(
   });
 
   const revenue = periodBookings
-    .filter((booking) => isRevenueBookingStatus(booking.booking_status))
-    .reduce((sum, booking) => sum + Number(booking.total_amount), 0);
+    .filter((booking: BookingRow) => isRevenueBookingStatus(booking.booking_status))
+    .reduce((sum, booking: BookingRow) => sum + Number(booking.total_amount), 0);
 
   const expensesTotal = filteredExpenses.reduce(
-    (sum, expense) => sum + Number(expense.amount),
+    (sum, expense: ExpenseRow) => sum + Number(expense.amount),
     0
   );
 
   const countableBookings =
     normalized.bookingStatus === "cancelled"
       ? periodBookings
-      : periodBookings.filter((booking) => booking.booking_status !== "cancelled");
+      : periodBookings.filter(
+          (booking: BookingRow) => booking.booking_status !== "cancelled"
+        );
   const bookingsCount = countableBookings.length;
 
-  const revenueBookings: BookingRow[] = periodBookings.filter((booking) =>
-    isRevenueBookingStatus(booking.booking_status)
+  const revenueBookings: BookingRow[] = periodBookings.filter(
+    (booking: BookingRow) => isRevenueBookingStatus(booking.booking_status)
   );
 
   const averageBookingValue =
@@ -337,10 +341,12 @@ export async function getReportMetrics(
   const toDate = parseIsoDate(normalized.to);
   const totalDays = eachDayOfInterval(fromDate, toDate).length;
   const apartmentScope: ApartmentRow[] = apartments.filter(
-    (apartment) => !normalized.apartmentId || apartment.id === normalized.apartmentId
+    (apartment: ApartmentRow) =>
+      !normalized.apartmentId || apartment.id === normalized.apartmentId
   );
   const occupancyApartmentScope: ApartmentRow[] = apartmentScope.filter(
-    (apartment) => normalized.apartmentId || apartment.status === "active"
+    (apartment: ApartmentRow) =>
+      normalized.apartmentId || apartment.status === "active"
   );
   const availableApartmentDays = occupancyApartmentScope.length * totalDays;
   let occupiedApartmentDays = 0;
@@ -350,12 +356,12 @@ export async function getReportMetrics(
     const occupiedSet = new Set(
       occupancyBookings
         .filter(
-          (booking) =>
+          (booking: BookingRow) =>
             isBlockingBookingStatus(booking.booking_status) &&
             booking.check_in <= dayIso &&
             booking.check_out > dayIso
         )
-        .map((booking) => booking.apartment_id)
+        .map((booking: BookingRow) => booking.apartment_id)
     );
 
     occupiedApartmentDays += occupiedSet.size;
@@ -364,30 +370,32 @@ export async function getReportMetrics(
   const occupancyRate =
     availableApartmentDays > 0 ? occupiedApartmentDays / availableApartmentDays : 0;
 
-  const apartmentBreakdown: ReportMetrics["apartmentBreakdown"] = apartmentScope.map((apartment) => {
-    const apartmentBookings: BookingRow[] = periodBookings.filter(
-      (booking) => booking.apartment_id === apartment.id
-    );
-    const apartmentRevenue = apartmentBookings
-      .filter((booking) => isRevenueBookingStatus(booking.booking_status))
-      .reduce((sum, booking) => sum + Number(booking.total_amount), 0);
-    const apartmentExpenses = filteredExpenses
-      .filter((expense) => expense.apartment_id === apartment.id)
-      .reduce((sum, expense) => sum + Number(expense.amount), 0);
+  const apartmentBreakdown: ReportMetrics["apartmentBreakdown"] =
+    apartmentScope.map((apartment: ApartmentRow) => {
+      const apartmentBookings: BookingRow[] = periodBookings.filter(
+        (booking: BookingRow) => booking.apartment_id === apartment.id
+      );
+      const apartmentRevenue = apartmentBookings
+        .filter((booking: BookingRow) => isRevenueBookingStatus(booking.booking_status))
+        .reduce((sum, booking: BookingRow) => sum + Number(booking.total_amount), 0);
+      const apartmentExpenses = filteredExpenses
+        .filter((expense: ExpenseRow) => expense.apartment_id === apartment.id)
+        .reduce((sum, expense: ExpenseRow) => sum + Number(expense.amount), 0);
 
-    return {
-      apartmentId: apartment.id,
-      apartmentTitle: apartment.title,
-      bookingsCount:
-        normalized.bookingStatus === "cancelled"
-          ? apartmentBookings.length
-          : apartmentBookings.filter((booking) => booking.booking_status !== "cancelled")
-              .length,
-      revenue: apartmentRevenue,
-      expenses: apartmentExpenses,
-      profit: apartmentRevenue - apartmentExpenses
-    };
-  });
+      return {
+        apartmentId: apartment.id,
+        apartmentTitle: apartment.title,
+        bookingsCount:
+          normalized.bookingStatus === "cancelled"
+            ? apartmentBookings.length
+            : apartmentBookings.filter(
+                (booking: BookingRow) => booking.booking_status !== "cancelled"
+              ).length,
+        revenue: apartmentRevenue,
+        expenses: apartmentExpenses,
+        profit: apartmentRevenue - apartmentExpenses
+      };
+    });
 
   return {
     filters: normalized,

@@ -25,6 +25,9 @@ import { formatCurrency } from "@/lib/formatters";
 import type { Database } from "@/lib/supabase/database.types";
 
 type ApartmentRow = Database["public"]["Tables"]["apartments"]["Row"];
+type ReportBooking = ReportMetrics["bookings"][number];
+type ReportExpense = ReportMetrics["expensesRows"][number];
+type ApartmentBreakdownRow = ReportMetrics["apartmentBreakdown"][number];
 
 type BookingStatus =
   | "new"
@@ -71,7 +74,7 @@ export default async function ReportsPage({ searchParams }: ReportsPageProps) {
 
   const currency = settings?.currency ?? "USD";
   const apartmentMap = new Map(
-    apartments.map((apartment) => [apartment.id, apartment.title] as const)
+    apartments.map((apartment: ApartmentRow) => [apartment.id, apartment.title] as const)
   );
   const hasResults =
     reportBookings.length > 0 ||
@@ -116,7 +119,7 @@ export default async function ReportsPage({ searchParams }: ReportsPageProps) {
           <Input type="date" name="to" defaultValue={filters.to} />
           <Select name="apartmentId" defaultValue={filters.apartmentId}>
             <option value="">All apartments</option>
-            {apartments.map((apartment) => (
+            {apartments.map((apartment: ApartmentRow) => (
               <option key={apartment.id} value={apartment.id}>
                 {apartment.title}
               </option>
@@ -209,7 +212,7 @@ export default async function ReportsPage({ searchParams }: ReportsPageProps) {
                 <span>Profit</span>
               </div>
               <div className="divide-y divide-border">
-                {apartmentBreakdown.map((item) => (
+                {apartmentBreakdown.map((item: ApartmentBreakdownRow) => (
                   <Link
                     key={item.apartmentId}
                     href={`/apartments/${item.apartmentId}`}
@@ -281,7 +284,7 @@ export default async function ReportsPage({ searchParams }: ReportsPageProps) {
             />
           ) : (
             <div className="flex flex-col gap-3">
-              {reportBookings.map((booking) => (
+              {reportBookings.map((booking: ReportBooking) => (
                 <Link
                   key={booking.id}
                   href={`/bookings/${booking.id}/edit?returnTo=/reports`}
@@ -328,7 +331,7 @@ export default async function ReportsPage({ searchParams }: ReportsPageProps) {
             />
           ) : (
             <div className="flex flex-col gap-3">
-              {reportExpensesRows.map((expense) => (
+              {reportExpensesRows.map((expense: ReportExpense) => (
                 <Link
                   key={expense.id}
                   href={`/expenses/${expense.id}/edit?returnTo=/reports`}

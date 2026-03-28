@@ -80,7 +80,7 @@ export default async function SettingsPage() {
         actions={<StatusBadge tone="info">{users.length} users</StatusBadge>}
       >
         <div className="grid gap-4">
-          {users.map((user) => {
+          {users.map((user: UserRow) => {
             const isCurrentUser = user.id === currentUserId;
 
             return (

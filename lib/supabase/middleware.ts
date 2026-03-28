@@ -50,10 +50,10 @@ export async function updateSession(request: NextRequest) {
     }
   );
 
-  const { data: claimsData } = await supabase.auth.getClaims();
+  const { data: claimsData, error: claimsError } = await supabase.auth.getClaims();
   const claims = claimsData?.claims;
 
-  const isAuthenticated = Boolean(claims?.sub);
+  const isAuthenticated = !claimsError && Boolean(claims?.sub);
   const isProtectedRoute = matchesRoute(request.nextUrl.pathname, protectedRoutes);
   const isLoginRoute = request.nextUrl.pathname === "/login";
 

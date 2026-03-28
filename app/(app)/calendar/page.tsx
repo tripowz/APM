@@ -42,9 +42,9 @@ export default async function CalendarPage({ searchParams }: CalendarPageProps) 
   const bookings: BookingRow[] = bookingsResult;
 
   const apartmentMap = new Map(
-    apartments.map((apartment) => [apartment.id, apartment.title] as const)
+    apartments.map((apartment: ApartmentRow) => [apartment.id, apartment.title] as const)
   );
-  const enrichedBookings: CalendarBooking[] = bookings.map((booking) => ({
+  const enrichedBookings: CalendarBooking[] = bookings.map((booking: BookingRow) => ({
     ...booking,
     apartment_title: apartmentMap.get(booking.apartment_id) ?? "Unknown apartment"
   }));
@@ -107,7 +107,7 @@ export default async function CalendarPage({ searchParams }: CalendarPageProps) 
             <input type="hidden" name="month" value={monthKey} />
             <Select name="apartmentId" defaultValue={apartmentId ?? ""}>
               <option value="">All apartments</option>
-              {apartments.map((apartment) => (
+              {apartments.map((apartment: ApartmentRow) => (
                 <option key={apartment.id} value={apartment.id}>
                   {apartment.title}
                 </option>

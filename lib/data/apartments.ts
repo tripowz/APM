@@ -13,6 +13,25 @@ import {
 } from "@/lib/validations/apartment";
 
 type ApartmentRow = Database["public"]["Tables"]["apartments"]["Row"];
+type BookingRow = Database["public"]["Tables"]["bookings"]["Row"];
+type ExpenseRow = Database["public"]["Tables"]["expenses"]["Row"];
+type ApartmentStats = {
+  bookingsCount: number;
+  revenue: number;
+  expenses: number;
+  profit: number;
+};
+
+export type ApartmentDetails = {
+  apartment: ApartmentRow;
+  bookings: BookingRow[];
+  expenses: ExpenseRow[];
+  stats: ApartmentStats;
+};
+
+export type ApartmentSummary = ApartmentRow & {
+  stats: ApartmentStats;
+};
 
 type ListApartmentFilters = {
   query?: string;
@@ -60,7 +79,9 @@ export async function getApartmentById(id: string): Promise<ApartmentRow | null>
   return data;
 }
 
-export async function getApartmentDetails(id: string) {
+export async function getApartmentDetails(
+  id: string
+): Promise<ApartmentDetails | null> {
   const apartmentResult = await getApartmentById(id);
 
   if (!apartmentResult) {
@@ -73,10 +94,12 @@ export async function getApartmentDetails(id: string) {
     listBookings({ apartmentId: id, includeCancelled: true }),
     listExpenses(id)
   ]);
-  const bookings = bookingsResult;
-  const expenses = expensesResult;
+  const bookings: BookingRow[] = bookingsResult;
+  const expenses: ExpenseRow[] = expensesResult;
 
-  const activeBookings = bookings.filter((booking) => booking.booking_status !== "cancelled");
+  const activeBookings: BookingRow[] = bookings.filter(
+    (booking) => booking.booking_status !== "cancelled"
+  );
   const revenue = activeBookings
     .filter((booking) => isRevenueBookingStatus(booking.booking_status))
     .reduce((total, booking) => total + Number(booking.total_amount), 0);
@@ -98,21 +121,23 @@ export async function getApartmentDetails(id: string) {
   };
 }
 
-export async function listApartmentSummaries(filters: ListApartmentFilters = {}) {
+export async function listApartmentSummaries(
+  filters: ListApartmentFilters = {}
+): Promise<ApartmentSummary[]> {
   const apartments = await listApartments(filters);
   const [bookingsResult, expensesResult] = await Promise.all([
     listBookings(),
     listExpenses()
   ]);
-  const bookings = bookingsResult;
-  const expenses = expensesResult;
+  const bookings: BookingRow[] = bookingsResult;
+  const expenses: ExpenseRow[] = expensesResult;
 
-  return apartments.map((apartment) => {
-    const apartmentBookings = bookings.filter(
+  return apartments.map((apartment): ApartmentSummary => {
+    const apartmentBookings: BookingRow[] = bookings.filter(
       (booking) =>
         booking.apartment_id === apartment.id && booking.booking_status !== "cancelled"
     );
-    const apartmentExpenses = expenses.filter(
+    const apartmentExpenses: ExpenseRow[] = expenses.filter(
       (expense) => expense.apartment_id === apartment.id
     );
     const revenue = apartmentBookings
@@ -135,9 +160,9 @@ export async function listApartmentSummaries(filters: ListApartmentFilters = {})
   });
 }
 
-export async function createApartment(input: ApartmentInput) {
-  const payload = apartmentSchema.parse(input);
+export async function createApartment(input: ApartmentInput): Promise<ApartmentRow> {
   const supabase = await createClient();
+  const payload = apartmentSchema.parse(input);
   const { data, error } = await supabase
     .from("apartments")
     .insert(payload)
@@ -151,7 +176,10 @@ export async function createApartment(input: ApartmentInput) {
   return data;
 }
 
-export async function updateApartment(id: string, input: ApartmentUpdateInput) {
+export async function updateApartment(
+  id: string,
+  input: ApartmentUpdateInput
+): Promise<ApartmentRow> {
   const payload = apartmentUpdateSchema.parse(input);
   const supabase = await createClient();
   const { data, error } = await supabase
@@ -168,7 +196,7 @@ export async function updateApartment(id: string, input: ApartmentUpdateInput) {
   return data;
 }
 
-export async function deleteApartment(id: string) {
+export async function deleteApartment(id: string): Promise<void> {
   const supabase = await createClient();
   const { error } = await supabase.from("apartments").delete().eq("id", id);
 

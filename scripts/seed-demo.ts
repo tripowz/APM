@@ -153,14 +153,12 @@ const supabase = createClient<Database>(supabaseUrl, requireServiceRoleKey(), {
   }
 });
 
-async function ensureUser(seedUser: SeedUser) {
-  const {
-    data: { users },
-    error: listError
-  } = await supabase.auth.admin.listUsers({
+async function ensureUser(seedUser: SeedUser): Promise<string> {
+  const { data: usersData, error: listError } = await supabase.auth.admin.listUsers({
     page: 1,
     perPage: 1000
   });
+  const users = usersData?.users ?? [];
 
   if (listError) {
     throw listError;
@@ -180,6 +178,10 @@ async function ensureUser(seedUser: SeedUser) {
 
     if (error) {
       throw error;
+    }
+
+    if (!data.user) {
+      throw new Error(`Failed to update ${seedUser.email}`);
     }
 
     return data.user.id;

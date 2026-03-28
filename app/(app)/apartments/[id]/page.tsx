@@ -26,6 +26,8 @@ type ApartmentDetails = {
     profit: number;
   };
 };
+type ApartmentBooking = ApartmentDetails["bookings"][number];
+type ApartmentExpense = ApartmentDetails["expenses"][number];
 
 type ApartmentDetailsPageProps = {
   params: Promise<{
@@ -43,7 +45,7 @@ export default async function ApartmentDetailsPage({
   ]);
 
   if (!detailsResult) {
-    notFound();
+    return notFound();
   }
 
   const details: ApartmentDetails = detailsResult;
@@ -119,7 +121,7 @@ export default async function ApartmentDetailsPage({
                 No bookings yet for this apartment.
               </p>
             ) : (
-              apartmentBookings.map((booking) => (
+              apartmentBookings.map((booking: ApartmentBooking) => (
                 <Link
                   key={booking.id}
                   href={`/bookings/${booking.id}/edit?returnTo=/apartments/${details.apartment.id}`}
@@ -164,7 +166,7 @@ export default async function ApartmentDetailsPage({
                   No expenses recorded for this apartment yet.
                 </p>
               ) : (
-                apartmentExpenses.map((expense) => (
+                apartmentExpenses.map((expense: ApartmentExpense) => (
                   <div
                     key={expense.id}
                     className="rounded-2xl border border-border bg-surface-muted p-4"

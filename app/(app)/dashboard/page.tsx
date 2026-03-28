@@ -28,6 +28,8 @@ import { formatCurrency } from "@/lib/formatters";
 import type { Database } from "@/lib/supabase/database.types";
 
 type ApartmentRow = Database["public"]["Tables"]["apartments"]["Row"];
+type RecentBooking = DashboardMetrics["recentBookings"][number];
+type ApartmentPerformanceRow = DashboardMetrics["apartmentPerformance"][number];
 
 export default async function DashboardPage() {
   const [metricsResult, apartmentsResult, settings] = await Promise.all([
@@ -44,7 +46,7 @@ export default async function DashboardPage() {
 
   const currency = settings?.currency ?? "USD";
   const apartmentMap = new Map(
-    apartments.map((apartment) => [apartment.id, apartment.title] as const)
+    apartments.map((apartment: ApartmentRow) => [apartment.id, apartment.title] as const)
   );
 
   return (
@@ -126,7 +128,7 @@ export default async function DashboardPage() {
                 No bookings have been created yet.
               </p>
             ) : (
-              recentBookings.map((booking) => (
+              recentBookings.map((booking: RecentBooking) => (
                 <Link
                   key={booking.id}
                   href={`/bookings/${booking.id}/edit?returnTo=/dashboard`}
@@ -180,7 +182,7 @@ export default async function DashboardPage() {
               <span>Profit</span>
             </div>
             <div className="divide-y divide-border">
-              {apartmentPerformance.map((item) => (
+              {apartmentPerformance.map((item: ApartmentPerformanceRow) => (
                 <Link
                   key={item.apartmentId}
                   href={`/apartments/${item.apartmentId}`}

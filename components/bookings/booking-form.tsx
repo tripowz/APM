@@ -89,7 +89,7 @@ export function BookingForm({
             <option value="" disabled>
               {hasApartments ? "Select apartment" : "No apartments available"}
             </option>
-            {apartments.map((apartment) => (
+            {apartments.map((apartment: ApartmentOption) => (
               <option key={apartment.id} value={apartment.id}>
                 {apartment.title}
                 {apartment.status === "inactive" ? " (inactive)" : ""}

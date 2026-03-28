@@ -113,7 +113,7 @@ export async function updateExpense(
   return data;
 }
 
-export async function deleteExpense(id: string) {
+export async function deleteExpense(id: string): Promise<void> {
   const supabase = await createClient();
   const { error } = await supabase.from("expenses").delete().eq("id", id);
 

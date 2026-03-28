@@ -91,7 +91,7 @@ export default async function ExpensesPage({ searchParams }: ExpensesPageProps) 
           <Input type="date" name="to" defaultValue={filters.to} />
           <Select name="apartmentId" defaultValue={filters.apartmentId ?? ""}>
             <option value="">All apartments</option>
-            {apartments.map((apartment) => (
+            {apartments.map((apartment: ApartmentRow) => (
               <option key={apartment.id} value={apartment.id}>
                 {apartment.title}
               </option>
@@ -142,7 +142,7 @@ export default async function ExpensesPage({ searchParams }: ExpensesPageProps) 
               <span className="text-right">Action</span>
             </div>
             <div className="divide-y divide-border">
-              {expenseRows.map((expense) => {
+              {expenseRows.map((expense: ExpenseRow) => {
                 const apartment = apartmentMap.get(expense.apartment_id);
 
                 return (

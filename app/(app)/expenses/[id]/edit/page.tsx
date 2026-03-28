@@ -34,7 +34,7 @@ export default async function EditExpensePage({
   ]);
 
   if (!expenseResult) {
-    notFound();
+    return notFound();
   }
 
   const expense: ExpenseRow = expenseResult;

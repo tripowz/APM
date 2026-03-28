@@ -69,7 +69,12 @@ export async function updateUserProfile(
   return data;
 }
 
-export async function createManagedUser(input: UserInviteInput) {
+export async function createManagedUser(
+  input: UserInviteInput
+): Promise<{
+  userId: string;
+  temporaryPassword: string;
+}> {
   const payload = userInviteSchema.parse(input);
   const admin = createAdminClient();
   const { data: usersData, error: listError } = await admin.auth.admin.listUsers({

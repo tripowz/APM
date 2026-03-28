@@ -21,7 +21,7 @@ export default async function EditApartmentPage({
   const apartmentResult = await getApartmentById(id);
 
   if (!apartmentResult) {
-    notFound();
+    return notFound();
   }
 
   const apartment: ApartmentRow = apartmentResult;

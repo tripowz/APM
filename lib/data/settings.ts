@@ -3,6 +3,11 @@ import "server-only";
 import { createClient } from "@/lib/supabase/server";
 import type { Database } from "@/lib/supabase/database.types";
 import {
+  toTableRow,
+  toMaybeTableRow,
+  toSupabaseUpsert,
+} from "@/lib/supabase/tables";
+import {
   settingsSchema,
   type SettingsInput
 } from "@/lib/validations/settings";
@@ -22,7 +27,7 @@ export async function getSettings(): Promise<SettingsRow | null> {
     throw new Error(`Failed to load settings: ${error.message}`);
   }
 
-  return settingsResult;
+  return toMaybeTableRow<"settings">(settingsResult);
 }
 
 export async function upsertSettings(input: SettingsInput): Promise<SettingsRow> {
@@ -31,7 +36,7 @@ export async function upsertSettings(input: SettingsInput): Promise<SettingsRow>
   const supabase = await createClient();
   const { data: settingsResult, error } = await supabase
     .from("settings")
-    .upsert(settingsPayload)
+    .upsert(toSupabaseUpsert<"settings">(settingsPayload))
     .select("*")
     .single();
 
@@ -39,5 +44,5 @@ export async function upsertSettings(input: SettingsInput): Promise<SettingsRow>
     throw new Error(`Failed to save settings: ${error.message}`);
   }
 
-  return settingsResult;
+  return toTableRow<"settings">(settingsResult);
 }

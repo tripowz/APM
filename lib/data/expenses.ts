@@ -3,6 +3,13 @@ import "server-only";
 import { createClient } from "@/lib/supabase/server";
 import type { Database } from "@/lib/supabase/database.types";
 import {
+  toTableRow,
+  toMaybeTableRow,
+  toSupabaseInsert,
+  toSupabaseUpdate,
+  toTableRows
+} from "@/lib/supabase/tables";
+import {
   expenseSchema,
   expenseUpdateSchema,
   type ExpenseInput,
@@ -61,7 +68,7 @@ export async function listExpenses(
     throw new Error(`Failed to load expenses: ${error.message}`);
   }
 
-  const expenses: ExpenseRow[] = expensesResult ?? [];
+  const expenses: ExpenseRow[] = toTableRows<"expenses">(expensesResult);
 
   return expenses;
 }
@@ -78,7 +85,7 @@ export async function getExpenseById(id: string): Promise<ExpenseRow | null> {
     throw new Error(`Failed to load expense: ${error.message}`);
   }
 
-  return expenseResult;
+  return toMaybeTableRow<"expenses">(expenseResult);
 }
 
 export async function createExpense(input: ExpenseInput): Promise<ExpenseRow> {
@@ -86,7 +93,7 @@ export async function createExpense(input: ExpenseInput): Promise<ExpenseRow> {
   const supabase = await createClient();
   const { data: expenseResult, error } = await supabase
     .from("expenses")
-    .insert(payload)
+    .insert(toSupabaseInsert<"expenses">(payload))
     .select("*")
     .single();
 
@@ -94,7 +101,7 @@ export async function createExpense(input: ExpenseInput): Promise<ExpenseRow> {
     throw new Error(`Failed to create expense: ${error.message}`);
   }
 
-  return expenseResult;
+  return toTableRow<"expenses">(expenseResult);
 }
 
 export async function updateExpense(
@@ -105,7 +112,7 @@ export async function updateExpense(
   const supabase = await createClient();
   const { data: expenseResult, error } = await supabase
     .from("expenses")
-    .update(payload)
+    .update(toSupabaseUpdate<"expenses">(payload))
     .eq("id", id)
     .select("*")
     .single();
@@ -114,7 +121,7 @@ export async function updateExpense(
     throw new Error(`Failed to update expense: ${error.message}`);
   }
 
-  return expenseResult;
+  return toTableRow<"expenses">(expenseResult);
 }
 
 export async function deleteExpense(id: string): Promise<void> {

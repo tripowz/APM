@@ -4,6 +4,13 @@ import { createClient } from "@/lib/supabase/server";
 import type { Database } from "@/lib/supabase/database.types";
 import { BookingConflictError, findBookingConflict } from "@/lib/bookings/conflicts";
 import {
+  toTableRow,
+  toMaybeTableRow,
+  toSupabaseInsert,
+  toSupabaseUpdate,
+  toTableRows
+} from "@/lib/supabase/tables";
+import {
   bookingSchema,
   type BookingInput,
   type BookingUpdateInput
@@ -56,7 +63,7 @@ export async function listBookings(
     throw new Error(`Failed to load bookings: ${error.message}`);
   }
 
-  const bookings: BookingRow[] = bookingsResult ?? [];
+  const bookings: BookingRow[] = toTableRows<"bookings">(bookingsResult);
 
   return bookings;
 }
@@ -73,7 +80,7 @@ export async function getBookingById(id: string): Promise<BookingRow | null> {
     throw new Error(`Failed to load booking: ${error.message}`);
   }
 
-  return bookingResult;
+  return toMaybeTableRow<"bookings">(bookingResult);
 }
 
 async function assertBookingConflictFree(
@@ -133,7 +140,7 @@ export async function createBooking(input: BookingInput): Promise<BookingRow> {
   const supabase = await createClient();
   const { data: bookingResult, error } = await supabase
     .from("bookings")
-    .insert(payload)
+    .insert(toSupabaseInsert<"bookings">(payload))
     .select("*")
     .single();
 
@@ -141,7 +148,7 @@ export async function createBooking(input: BookingInput): Promise<BookingRow> {
     throw new Error(`Failed to create booking: ${error.message}`);
   }
 
-  return bookingResult;
+  return toTableRow<"bookings">(bookingResult);
 }
 
 export async function updateBooking(
@@ -163,7 +170,7 @@ export async function updateBooking(
   const supabase = await createClient();
   const { data: bookingResult, error } = await supabase
     .from("bookings")
-    .update(payload)
+    .update(toSupabaseUpdate<"bookings">(payload))
     .eq("id", id)
     .select("*")
     .single();
@@ -172,7 +179,7 @@ export async function updateBooking(
     throw new Error(`Failed to update booking: ${error.message}`);
   }
 
-  return bookingResult;
+  return toTableRow<"bookings">(bookingResult);
 }
 
 export async function deleteBooking(id: string): Promise<void> {
@@ -191,7 +198,7 @@ export async function cancelBooking(id: string): Promise<BookingRow> {
   };
   const { data: bookingResult, error } = await supabase
     .from("bookings")
-    .update(payload)
+    .update(toSupabaseUpdate<"bookings">(payload))
     .eq("id", id)
     .select("*")
     .single();
@@ -200,5 +207,5 @@ export async function cancelBooking(id: string): Promise<BookingRow> {
     throw new Error(`Failed to cancel booking: ${error.message}`);
   }
 
-  return bookingResult;
+  return toTableRow<"bookings">(bookingResult);
 }

@@ -5,6 +5,7 @@ import {
   getSupabaseUrl,
   requireServiceRoleKey
 } from "../lib/supabase/env";
+import { toSupabaseUpsert } from "../lib/supabase/tables";
 
 type SeedUser = {
   email: string;
@@ -230,14 +231,18 @@ async function main() {
     })
   );
 
-  const { error: userError } = await supabase.from("users").upsert(seededUsers);
+  const { error: userError } = await supabase
+    .from("users")
+    .upsert(toSupabaseUpsert<"users">(seededUsers));
 
   if (userError) {
     throw userError;
   }
 
   const settingsPayload: SettingsInsert = settings;
-  const { error: settingsError } = await supabase.from("settings").upsert(settingsPayload);
+  const { error: settingsError } = await supabase
+    .from("settings")
+    .upsert(toSupabaseUpsert<"settings">(settingsPayload));
 
   if (settingsError) {
     throw settingsError;
@@ -246,21 +251,25 @@ async function main() {
   const apartmentPayload: ApartmentInsert[] = apartments;
   const { error: apartmentError } = await supabase
     .from("apartments")
-    .upsert(apartmentPayload);
+    .upsert(toSupabaseUpsert<"apartments">(apartmentPayload));
 
   if (apartmentError) {
     throw apartmentError;
   }
 
   const bookingPayload: BookingInsert[] = bookings;
-  const { error: bookingError } = await supabase.from("bookings").upsert(bookingPayload);
+  const { error: bookingError } = await supabase
+    .from("bookings")
+    .upsert(toSupabaseUpsert<"bookings">(bookingPayload));
 
   if (bookingError) {
     throw bookingError;
   }
 
   const expensePayload: ExpenseInsert[] = expenses;
-  const { error: expenseError } = await supabase.from("expenses").upsert(expensePayload);
+  const { error: expenseError } = await supabase
+    .from("expenses")
+    .upsert(toSupabaseUpsert<"expenses">(expensePayload));
 
   if (expenseError) {
     throw expenseError;

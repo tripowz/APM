@@ -6,6 +6,13 @@ import type { Database } from "@/lib/supabase/database.types";
 import { listBookings } from "@/lib/data/bookings";
 import { listExpenses } from "@/lib/data/expenses";
 import {
+  toTableRow,
+  toMaybeTableRow,
+  toSupabaseInsert,
+  toSupabaseUpdate,
+  toTableRows
+} from "@/lib/supabase/tables";
+import {
   apartmentSchema,
   apartmentUpdateSchema,
   type ApartmentInput,
@@ -53,7 +60,7 @@ export async function listApartments(
     throw new Error(`Failed to load apartments: ${error.message}`);
   }
 
-  const apartments: ApartmentRow[] = apartmentsResult ?? [];
+  const apartments: ApartmentRow[] = toTableRows<"apartments">(apartmentsResult);
 
   return apartments.filter((apartment: ApartmentRow) => {
     const matchesStatus =
@@ -80,7 +87,7 @@ export async function getApartmentById(id: string): Promise<ApartmentRow | null>
     throw new Error(`Failed to load apartment: ${error.message}`);
   }
 
-  return apartmentResult;
+  return toMaybeTableRow<"apartments">(apartmentResult);
 }
 
 export async function getApartmentDetails(
@@ -175,7 +182,7 @@ export async function createApartment(input: ApartmentInput): Promise<ApartmentR
   const payload: ApartmentInsert = apartmentSchema.parse(input);
   const { data: apartmentResult, error } = await supabase
     .from("apartments")
-    .insert(payload)
+    .insert(toSupabaseInsert<"apartments">(payload))
     .select("*")
     .single();
 
@@ -183,7 +190,7 @@ export async function createApartment(input: ApartmentInput): Promise<ApartmentR
     throw new Error(`Failed to create apartment: ${error.message}`);
   }
 
-  return apartmentResult;
+  return toTableRow<"apartments">(apartmentResult);
 }
 
 export async function updateApartment(
@@ -194,7 +201,7 @@ export async function updateApartment(
   const supabase = await createClient();
   const { data: apartmentResult, error } = await supabase
     .from("apartments")
-    .update(payload)
+    .update(toSupabaseUpdate<"apartments">(payload))
     .eq("id", id)
     .select("*")
     .single();
@@ -203,7 +210,7 @@ export async function updateApartment(
     throw new Error(`Failed to update apartment: ${error.message}`);
   }
 
-  return apartmentResult;
+  return toTableRow<"apartments">(apartmentResult);
 }
 
 export async function deleteApartment(id: string): Promise<void> {

@@ -4,6 +4,13 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import type { Database } from "@/lib/supabase/database.types";
 import {
+  toTableRow,
+  toMaybeTableRow,
+  toSupabaseUpdate,
+  toSupabaseUpsert,
+  toTableRows
+} from "@/lib/supabase/tables";
+import {
   userInviteSchema,
   userProfileUpdateSchema,
   type UserInviteInput
@@ -24,7 +31,7 @@ export async function listUsers(): Promise<UserRow[]> {
     throw new Error(`Failed to load users: ${error.message}`);
   }
 
-  const users: UserRow[] = usersResult ?? [];
+  const users: UserRow[] = toTableRows<"users">(usersResult);
 
   return users.sort((a: UserRow, b: UserRow) => {
     if (a.role !== b.role) {
@@ -47,7 +54,7 @@ export async function getUserById(id: string): Promise<UserRow | null> {
     throw new Error(`Failed to load user: ${error.message}`);
   }
 
-  return userResult;
+  return toMaybeTableRow<"users">(userResult);
 }
 
 export async function updateUserProfile(
@@ -61,7 +68,7 @@ export async function updateUserProfile(
   const supabase = await createClient();
   const { data: userResult, error } = await supabase
     .from("users")
-    .update(payload)
+    .update(toSupabaseUpdate<"users">(payload))
     .eq("id", id)
     .select("*")
     .single();
@@ -70,7 +77,7 @@ export async function updateUserProfile(
     throw new Error(`Failed to update user: ${error.message}`);
   }
 
-  return userResult;
+  return toTableRow<"users">(userResult);
 }
 
 export async function createManagedUser(
@@ -117,7 +124,9 @@ export async function createManagedUser(
     email: payload.email,
     role: payload.role
   };
-  const { error: profileError } = await admin.from("users").upsert(profilePayload);
+  const { error: profileError } = await admin
+    .from("users")
+    .upsert(toSupabaseUpsert<"users">(profilePayload));
 
   if (profileError) {
     throw new Error(`Failed to save the user profile: ${profileError.message}`);

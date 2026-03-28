@@ -13,6 +13,8 @@ import {
 } from "@/lib/validations/apartment";
 
 type ApartmentRow = Database["public"]["Tables"]["apartments"]["Row"];
+type ApartmentInsert = Database["public"]["Tables"]["apartments"]["Insert"];
+type ApartmentUpdate = Database["public"]["Tables"]["apartments"]["Update"];
 type BookingRow = Database["public"]["Tables"]["bookings"]["Row"];
 type ExpenseRow = Database["public"]["Tables"]["expenses"]["Row"];
 type ApartmentStats = {
@@ -170,7 +172,7 @@ export async function listApartmentSummaries(
 
 export async function createApartment(input: ApartmentInput): Promise<ApartmentRow> {
   const supabase = await createClient();
-  const payload = apartmentSchema.parse(input);
+  const payload: ApartmentInsert = apartmentSchema.parse(input);
   const { data: apartmentResult, error } = await supabase
     .from("apartments")
     .insert(payload)
@@ -188,7 +190,7 @@ export async function updateApartment(
   id: string,
   input: ApartmentUpdateInput
 ): Promise<ApartmentRow> {
-  const payload = apartmentUpdateSchema.parse(input);
+  const payload: ApartmentUpdate = apartmentUpdateSchema.parse(input);
   const supabase = await createClient();
   const { data: apartmentResult, error } = await supabase
     .from("apartments")

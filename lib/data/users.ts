@@ -10,6 +10,8 @@ import {
 } from "@/lib/validations/user";
 
 export type UserRow = Database["public"]["Tables"]["users"]["Row"];
+type UserInsert = Database["public"]["Tables"]["users"]["Insert"];
+type UserUpdate = Database["public"]["Tables"]["users"]["Update"];
 
 export async function listUsers(): Promise<UserRow[]> {
   const supabase = await createClient();
@@ -55,7 +57,7 @@ export async function updateUserProfile(
     role: "owner" | "member";
   }>
 ): Promise<UserRow> {
-  const payload = userProfileUpdateSchema.parse(input);
+  const payload: UserUpdate = userProfileUpdateSchema.parse(input);
   const supabase = await createClient();
   const { data: userResult, error } = await supabase
     .from("users")
@@ -109,12 +111,13 @@ export async function createManagedUser(
     throw new Error(error?.message ?? "Failed to create the user.");
   }
 
-  const { error: profileError } = await admin.from("users").upsert({
+  const profilePayload: UserInsert = {
     id: data.user.id,
     full_name: payload.full_name,
     email: payload.email,
     role: payload.role
-  });
+  };
+  const { error: profileError } = await admin.from("users").upsert(profilePayload);
 
   if (profileError) {
     throw new Error(`Failed to save the user profile: ${profileError.message}`);

@@ -8,6 +8,7 @@ import {
 } from "@/lib/validations/settings";
 
 export type SettingsRow = Database["public"]["Tables"]["settings"]["Row"];
+type SettingsInsert = Database["public"]["Tables"]["settings"]["Insert"];
 
 export async function getSettings(): Promise<SettingsRow | null> {
   const supabase = await createClient();
@@ -25,7 +26,7 @@ export async function getSettings(): Promise<SettingsRow | null> {
 }
 
 export async function upsertSettings(input: SettingsInput): Promise<SettingsRow> {
-  const payload = settingsSchema.parse(input);
+  const payload: SettingsInsert = settingsSchema.parse(input);
   const supabase = await createClient();
   const { data: settingsResult, error } = await supabase
     .from("settings")

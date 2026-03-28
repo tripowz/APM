@@ -10,6 +10,8 @@ import {
 } from "@/lib/validations/expense";
 
 type ExpenseRow = Database["public"]["Tables"]["expenses"]["Row"];
+type ExpenseInsert = Database["public"]["Tables"]["expenses"]["Insert"];
+type ExpenseUpdate = Database["public"]["Tables"]["expenses"]["Update"];
 
 type ListExpenseFilters = {
   apartmentId?: string;
@@ -80,7 +82,7 @@ export async function getExpenseById(id: string): Promise<ExpenseRow | null> {
 }
 
 export async function createExpense(input: ExpenseInput): Promise<ExpenseRow> {
-  const payload = expenseSchema.parse(input);
+  const payload: ExpenseInsert = expenseSchema.parse(input);
   const supabase = await createClient();
   const { data: expenseResult, error } = await supabase
     .from("expenses")
@@ -99,7 +101,7 @@ export async function updateExpense(
   id: string,
   input: ExpenseUpdateInput
 ): Promise<ExpenseRow> {
-  const payload = expenseUpdateSchema.parse(input);
+  const payload: ExpenseUpdate = expenseUpdateSchema.parse(input);
   const supabase = await createClient();
   const { data: expenseResult, error } = await supabase
     .from("expenses")

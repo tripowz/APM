@@ -6,6 +6,10 @@ import {
   supabaseUrl
 } from "@/lib/supabase/env";
 
-export function createClient() {
+export type BrowserSupabaseClient = ReturnType<
+  typeof createBrowserClient<Database>
+>;
+
+export function createClient(): BrowserSupabaseClient {
   return createBrowserClient<Database>(supabaseUrl, supabasePublishableKey);
 }

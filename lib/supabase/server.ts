@@ -7,7 +7,9 @@ import {
   supabaseUrl
 } from "@/lib/supabase/env";
 
-export async function createClient() {
+export type ServerSupabaseClient = ReturnType<typeof createServerClient<Database>>;
+
+export async function createClient(): Promise<ServerSupabaseClient> {
   const cookieStore = await cookies();
 
   return createServerClient<Database>(supabaseUrl, supabasePublishableKey, {

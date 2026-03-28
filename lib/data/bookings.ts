@@ -10,6 +10,8 @@ import {
 } from "@/lib/validations/booking";
 
 type BookingRow = Database["public"]["Tables"]["bookings"]["Row"];
+type BookingInsert = Database["public"]["Tables"]["bookings"]["Insert"];
+type BookingUpdate = Database["public"]["Tables"]["bookings"]["Update"];
 type BookingConflictCandidate = Pick<
   BookingRow,
   "id" | "guest_name" | "check_in" | "check_out" | "booking_status"
@@ -126,7 +128,7 @@ async function assertBookingConflictFree(
 }
 
 export async function createBooking(input: BookingInput): Promise<BookingRow> {
-  const payload = bookingSchema.parse(input);
+  const payload: BookingInsert = bookingSchema.parse(input);
   await assertBookingConflictFree(payload);
   const supabase = await createClient();
   const { data: bookingResult, error } = await supabase
@@ -152,12 +154,12 @@ export async function updateBooking(
     throw new Error("Booking not found.");
   }
 
-  const payload = bookingSchema.parse({
+  const payload: BookingUpdate = bookingSchema.parse({
     ...existingBooking,
     ...input
   });
 
-  await assertBookingConflictFree(payload, id);
+  await assertBookingConflictFree(payload as BookingInput, id);
   const supabase = await createClient();
   const { data: bookingResult, error } = await supabase
     .from("bookings")

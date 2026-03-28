@@ -69,10 +69,12 @@ export async function getApartmentDetails(id: string) {
 
   const apartment: ApartmentRow = apartmentResult;
 
-  const [bookings, expenses] = await Promise.all([
+  const [bookingsResult, expensesResult] = await Promise.all([
     listBookings({ apartmentId: id, includeCancelled: true }),
     listExpenses(id)
   ]);
+  const bookings = bookingsResult;
+  const expenses = expensesResult;
 
   const activeBookings = bookings.filter((booking) => booking.booking_status !== "cancelled");
   const revenue = activeBookings
@@ -98,7 +100,12 @@ export async function getApartmentDetails(id: string) {
 
 export async function listApartmentSummaries(filters: ListApartmentFilters = {}) {
   const apartments = await listApartments(filters);
-  const [bookings, expenses] = await Promise.all([listBookings(), listExpenses()]);
+  const [bookingsResult, expensesResult] = await Promise.all([
+    listBookings(),
+    listExpenses()
+  ]);
+  const bookings = bookingsResult;
+  const expenses = expensesResult;
 
   return apartments.map((apartment) => {
     const apartmentBookings = bookings.filter(

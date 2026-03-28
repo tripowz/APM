@@ -1,6 +1,7 @@
 import "server-only";
 
 import { createClient } from "@/lib/supabase/server";
+import type { Database } from "@/lib/supabase/database.types";
 import { BookingConflictError, findBookingConflict } from "@/lib/bookings/conflicts";
 import {
   bookingSchema,
@@ -8,13 +9,21 @@ import {
   type BookingUpdateInput
 } from "@/lib/validations/booking";
 
+type BookingRow = Database["public"]["Tables"]["bookings"]["Row"];
+type BookingConflictCandidate = Pick<
+  BookingRow,
+  "id" | "guest_name" | "check_in" | "check_out" | "booking_status"
+>;
+
 type ListBookingFilters = {
   apartmentId?: string;
   month?: string;
   includeCancelled?: boolean;
 };
 
-export async function listBookings(filters: ListBookingFilters = {}) {
+export async function listBookings(
+  filters: ListBookingFilters = {}
+): Promise<BookingRow[]> {
   const supabase = await createClient();
   let query = supabase
     .from("bookings")
@@ -48,7 +57,7 @@ export async function listBookings(filters: ListBookingFilters = {}) {
   return data;
 }
 
-export async function getBookingById(id: string) {
+export async function getBookingById(id: string): Promise<BookingRow | null> {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("bookings")
@@ -83,7 +92,7 @@ async function assertBookingConflictFree(
     throw new Error("Select a valid apartment for this booking.");
   }
 
-  const { data: existingBookings, error } = await supabase
+  const { data: existingBookingsResult, error } = await supabase
     .from("bookings")
     .select("id, guest_name, check_in, check_out, booking_status")
     .eq("apartment_id", input.apartment_id)
@@ -94,6 +103,9 @@ async function assertBookingConflictFree(
   if (error) {
     throw new Error(`Failed to validate booking conflict: ${error.message}`);
   }
+
+  const existingBookings: BookingConflictCandidate[] =
+    existingBookingsResult ?? [];
 
   const conflict = findBookingConflict(
     {
@@ -111,7 +123,7 @@ async function assertBookingConflictFree(
   }
 }
 
-export async function createBooking(input: BookingInput) {
+export async function createBooking(input: BookingInput): Promise<BookingRow> {
   const payload = bookingSchema.parse(input);
   await assertBookingConflictFree(payload);
   const supabase = await createClient();
@@ -128,7 +140,10 @@ export async function createBooking(input: BookingInput) {
   return data;
 }
 
-export async function updateBooking(id: string, input: BookingUpdateInput) {
+export async function updateBooking(
+  id: string,
+  input: BookingUpdateInput
+): Promise<BookingRow> {
   const existingBooking = await getBookingById(id);
 
   if (!existingBooking) {
@@ -165,7 +180,7 @@ export async function deleteBooking(id: string) {
   }
 }
 
-export async function cancelBooking(id: string) {
+export async function cancelBooking(id: string): Promise<BookingRow> {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("bookings")

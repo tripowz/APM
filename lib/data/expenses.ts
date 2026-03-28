@@ -1,12 +1,15 @@
 import "server-only";
 
 import { createClient } from "@/lib/supabase/server";
+import type { Database } from "@/lib/supabase/database.types";
 import {
   expenseSchema,
   expenseUpdateSchema,
   type ExpenseInput,
   type ExpenseUpdateInput
 } from "@/lib/validations/expense";
+
+type ExpenseRow = Database["public"]["Tables"]["expenses"]["Row"];
 
 type ListExpenseFilters = {
   apartmentId?: string;
@@ -23,7 +26,9 @@ type ListExpenseFilters = {
     | "all";
 };
 
-export async function listExpenses(filters: ListExpenseFilters | string = {}) {
+export async function listExpenses(
+  filters: ListExpenseFilters | string = {}
+): Promise<ExpenseRow[]> {
   const resolvedFilters =
     typeof filters === "string" ? { apartmentId: filters } : filters;
   const supabase = await createClient();
@@ -57,7 +62,7 @@ export async function listExpenses(filters: ListExpenseFilters | string = {}) {
   return data;
 }
 
-export async function getExpenseById(id: string) {
+export async function getExpenseById(id: string): Promise<ExpenseRow | null> {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("expenses")
@@ -72,7 +77,7 @@ export async function getExpenseById(id: string) {
   return data;
 }
 
-export async function createExpense(input: ExpenseInput) {
+export async function createExpense(input: ExpenseInput): Promise<ExpenseRow> {
   const payload = expenseSchema.parse(input);
   const supabase = await createClient();
   const { data, error } = await supabase
@@ -88,7 +93,10 @@ export async function createExpense(input: ExpenseInput) {
   return data;
 }
 
-export async function updateExpense(id: string, input: ExpenseUpdateInput) {
+export async function updateExpense(
+  id: string,
+  input: ExpenseUpdateInput
+): Promise<ExpenseRow> {
   const payload = expenseUpdateSchema.parse(input);
   const supabase = await createClient();
   const { data, error } = await supabase

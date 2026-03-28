@@ -15,6 +15,7 @@ import {
 } from "@/lib/dates";
 import type { Database } from "@/lib/supabase/database.types";
 
+type ApartmentRow = Database["public"]["Tables"]["apartments"]["Row"];
 type BookingRow = Database["public"]["Tables"]["bookings"]["Row"];
 type ExpenseRow = Database["public"]["Tables"]["expenses"]["Row"];
 
@@ -130,13 +131,18 @@ export async function getDashboardMetrics(): Promise<DashboardMetrics> {
   );
   const currentMonthToExclusive = toIsoDate(nextMonth);
 
-  const [apartments, bookings, expenses] = await Promise.all([
+  const [apartmentsResult, bookingsResult, expensesResult] = await Promise.all([
     listApartments({ status: "all" }),
     listBookings({ includeCancelled: true }),
     listExpenses()
   ]);
+  const apartments: ApartmentRow[] = apartmentsResult;
+  const bookings: BookingRow[] = bookingsResult;
+  const expenses: ExpenseRow[] = expensesResult;
 
-  const activeApartments = apartments.filter((apartment) => apartment.status === "active");
+  const activeApartments: ApartmentRow[] = apartments.filter(
+    (apartment) => apartment.status === "active"
+  );
   const occupiedTodayApartmentIds = new Set(
     bookings
       .filter(
@@ -168,13 +174,14 @@ export async function getDashboardMetrics(): Promise<DashboardMetrics> {
     )
     .reduce((sum, expense) => sum + Number(expense.amount), 0);
 
-  const recentBookings = bookings
+  const recentBookings: BookingRow[] = bookings
     .filter((booking) => booking.booking_status !== "cancelled")
     .sort((a, b) => b.created_at.localeCompare(a.created_at))
     .slice(0, 6);
 
-  const apartmentPerformance = activeApartments.map((apartment) => {
-    const apartmentBookings = bookings.filter(
+  const apartmentPerformance: DashboardMetrics["apartmentPerformance"] =
+    activeApartments.map((apartment) => {
+    const apartmentBookings: BookingRow[] = bookings.filter(
       (booking) => booking.apartment_id === apartment.id
     );
     const apartmentRevenue = apartmentBookings
@@ -184,7 +191,7 @@ export async function getDashboardMetrics(): Promise<DashboardMetrics> {
       .filter((expense) => expense.apartment_id === apartment.id)
       .reduce((sum, expense) => sum + Number(expense.amount), 0);
 
-    return {
+      return {
       apartmentId: apartment.id,
       apartmentTitle: apartment.title,
       bookingsCount: apartmentBookings.filter(
@@ -193,10 +200,12 @@ export async function getDashboardMetrics(): Promise<DashboardMetrics> {
       revenue: apartmentRevenue,
       expenses: apartmentExpenses,
       profit: apartmentRevenue - apartmentExpenses
-    };
+      };
   });
 
-  const revenueTrend = Array.from({ length: 6 }).map((_, index) => {
+  const revenueTrend: DashboardMetrics["revenueTrend"] = Array.from({
+    length: 6
+  }).map((_, index) => {
     const monthDate = new Date(
       Date.UTC(monthStart.getUTCFullYear(), monthStart.getUTCMonth() - (5 - index), 1)
     );
@@ -253,13 +262,16 @@ export async function getReportMetrics(
   const normalized = normalizeReportFilters(filters);
   const toExclusive = addDays(normalized.to, 1);
 
-  const [apartments, bookings, expenses] = await Promise.all([
+  const [apartmentsResult, bookingsResult, expensesResult] = await Promise.all([
     listApartments({ status: "all" }),
     listBookings({ includeCancelled: true }),
     listExpenses()
   ]);
+  const apartments: ApartmentRow[] = apartmentsResult;
+  const bookings: BookingRow[] = bookingsResult;
+  const expenses: ExpenseRow[] = expensesResult;
 
-  const periodBookings = bookings.filter((booking) => {
+  const periodBookings: BookingRow[] = bookings.filter((booking) => {
     const matchesApartment =
       !normalized.apartmentId || booking.apartment_id === normalized.apartmentId;
     const matchesStatus =
@@ -271,7 +283,7 @@ export async function getReportMetrics(
     return matchesApartment && matchesStatus && matchesPeriod;
   });
 
-  const occupancyBookings = bookings.filter((booking) => {
+  const occupancyBookings: BookingRow[] = bookings.filter((booking) => {
     const matchesApartment =
       !normalized.apartmentId || booking.apartment_id === normalized.apartmentId;
     const matchesStatus =
@@ -287,7 +299,7 @@ export async function getReportMetrics(
     return matchesApartment && matchesStatus && matchesPeriod;
   });
 
-  const filteredExpenses = expenses.filter((expense) => {
+  const filteredExpenses: ExpenseRow[] = expenses.filter((expense) => {
     const matchesApartment =
       !normalized.apartmentId || expense.apartment_id === normalized.apartmentId;
     const matchesPeriod = isWithinInclusiveRange(
@@ -314,7 +326,7 @@ export async function getReportMetrics(
       : periodBookings.filter((booking) => booking.booking_status !== "cancelled");
   const bookingsCount = countableBookings.length;
 
-  const revenueBookings = periodBookings.filter((booking) =>
+  const revenueBookings: BookingRow[] = periodBookings.filter((booking) =>
     isRevenueBookingStatus(booking.booking_status)
   );
 
@@ -324,10 +336,10 @@ export async function getReportMetrics(
   const fromDate = parseIsoDate(normalized.from);
   const toDate = parseIsoDate(normalized.to);
   const totalDays = eachDayOfInterval(fromDate, toDate).length;
-  const apartmentScope = apartments.filter(
+  const apartmentScope: ApartmentRow[] = apartments.filter(
     (apartment) => !normalized.apartmentId || apartment.id === normalized.apartmentId
   );
-  const occupancyApartmentScope = apartmentScope.filter(
+  const occupancyApartmentScope: ApartmentRow[] = apartmentScope.filter(
     (apartment) => normalized.apartmentId || apartment.status === "active"
   );
   const availableApartmentDays = occupancyApartmentScope.length * totalDays;
@@ -352,8 +364,8 @@ export async function getReportMetrics(
   const occupancyRate =
     availableApartmentDays > 0 ? occupiedApartmentDays / availableApartmentDays : 0;
 
-  const apartmentBreakdown = apartmentScope.map((apartment) => {
-    const apartmentBookings = periodBookings.filter(
+  const apartmentBreakdown: ReportMetrics["apartmentBreakdown"] = apartmentScope.map((apartment) => {
+    const apartmentBookings: BookingRow[] = periodBookings.filter(
       (booking) => booking.apartment_id === apartment.id
     );
     const apartmentRevenue = apartmentBookings

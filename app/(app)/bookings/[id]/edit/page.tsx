@@ -47,10 +47,11 @@ export default async function EditBookingPage({
 
   const booking: BookingRow = bookingResult;
   const apartments: ApartmentRow[] = apartmentsResult;
+  const apartmentMap = new Map(
+    apartments.map((apartment) => [apartment.id, apartment.title] as const)
+  );
 
-  const apartmentTitle =
-    apartments.find((apartment) => apartment.id === booking.apartment_id)?.title ??
-    null;
+  const apartmentTitle = apartmentMap.get(booking.apartment_id) ?? null;
   const returnTo =
     resolvedSearchParams?.returnTo ?? `/apartments/${booking.apartment_id}`;
 

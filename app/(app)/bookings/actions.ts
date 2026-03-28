@@ -12,6 +12,10 @@ import {
   getBookingById,
   updateBooking
 } from "@/lib/data/bookings";
+import type { Database } from "@/lib/supabase/database.types";
+import type { BookingInput, BookingUpdateInput } from "@/lib/validations/booking";
+
+type BookingRow = Database["public"]["Tables"]["bookings"]["Row"];
 
 export type BookingFormState = {
   error?: string;
@@ -94,9 +98,31 @@ export async function saveBookingAction(
   }
 
   try {
-    const booking = parsed.data.bookingId
-      ? await updateBooking(parsed.data.bookingId, parsed.data)
-      : await createBooking(parsed.data);
+    const bookingPayload: BookingInput = {
+      apartment_id: parsed.data.apartment_id,
+      guest_name: parsed.data.guest_name,
+      guest_phone: parsed.data.guest_phone?.trim()
+        ? parsed.data.guest_phone.trim()
+        : null,
+      check_in: parsed.data.check_in,
+      check_out: parsed.data.check_out,
+      total_amount: parsed.data.total_amount,
+      prepaid_amount: parsed.data.prepaid_amount,
+      payment_status: parsed.data.payment_status,
+      booking_status: parsed.data.booking_status,
+      notes: parsed.data.notes?.trim() ? parsed.data.notes.trim() : null
+    };
+
+    let booking: BookingRow;
+
+    if (parsed.data.bookingId) {
+      booking = await updateBooking(
+        parsed.data.bookingId,
+        bookingPayload as BookingUpdateInput
+      );
+    } else {
+      booking = await createBooking(bookingPayload);
+    }
 
     revalidateBookingRoutes(booking.apartment_id, booking.id);
 
@@ -123,11 +149,13 @@ export async function cancelBookingAction(formData: FormData) {
     typeof formData.get("returnTo") === "string" ? String(formData.get("returnTo")) : null
   );
 
-  const existing = await getBookingById(bookingId);
+  const existingResult = await getBookingById(bookingId);
 
-  if (!existing) {
+  if (!existingResult) {
     redirect(returnTo);
   }
+
+  const existing: BookingRow = existingResult;
 
   await cancelBooking(bookingId);
   revalidateBookingRoutes(existing.apartment_id, bookingId);
@@ -140,11 +168,13 @@ export async function deleteBookingAction(formData: FormData) {
     typeof formData.get("returnTo") === "string" ? String(formData.get("returnTo")) : null
   );
 
-  const existing = await getBookingById(bookingId);
+  const existingResult = await getBookingById(bookingId);
 
-  if (!existing) {
+  if (!existingResult) {
     redirect(returnTo);
   }
+
+  const existing: BookingRow = existingResult;
 
   await deleteBooking(bookingId);
   revalidateBookingRoutes(existing.apartment_id, bookingId);

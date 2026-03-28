@@ -10,6 +10,10 @@ import {
   getExpenseById,
   updateExpense
 } from "@/lib/data/expenses";
+import type { Database } from "@/lib/supabase/database.types";
+import type { ExpenseInput, ExpenseUpdateInput } from "@/lib/validations/expense";
+
+type ExpenseRow = Database["public"]["Tables"]["expenses"]["Row"];
 
 export type ExpenseFormState = {
   error?: string;
@@ -81,9 +85,24 @@ export async function saveExpenseAction(
   }
 
   try {
-    const expense = parsed.data.expenseId
-      ? await updateExpense(parsed.data.expenseId, parsed.data)
-      : await createExpense(parsed.data);
+    const expensePayload: ExpenseInput = {
+      apartment_id: parsed.data.apartment_id,
+      amount: parsed.data.amount,
+      category: parsed.data.category,
+      expense_date: parsed.data.expense_date,
+      note: parsed.data.note?.trim() ? parsed.data.note.trim() : null
+    };
+
+    let expense: ExpenseRow;
+
+    if (parsed.data.expenseId) {
+      expense = await updateExpense(
+        parsed.data.expenseId,
+        expensePayload as ExpenseUpdateInput
+      );
+    } else {
+      expense = await createExpense(expensePayload);
+    }
 
     revalidateExpenseRoutes(expense.apartment_id, expense.id);
     redirect(getSafeReturnPath(parsed.data.returnTo));
@@ -103,11 +122,13 @@ export async function deleteExpenseAction(formData: FormData) {
     typeof formData.get("returnTo") === "string" ? String(formData.get("returnTo")) : null
   );
 
-  const existing = await getExpenseById(expenseId);
+  const existingResult = await getExpenseById(expenseId);
 
-  if (!existing) {
+  if (!existingResult) {
     redirect(returnTo);
   }
+
+  const existing: ExpenseRow = existingResult;
 
   await deleteExpense(expenseId);
   revalidateExpenseRoutes(existing.apartment_id, expenseId);

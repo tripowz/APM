@@ -2,6 +2,7 @@ import "server-only";
 
 import { isRevenueBookingStatus } from "@/lib/business/rules";
 import { createClient } from "@/lib/supabase/server";
+import type { Database } from "@/lib/supabase/database.types";
 import { listBookings } from "@/lib/data/bookings";
 import { listExpenses } from "@/lib/data/expenses";
 import {
@@ -11,12 +12,16 @@ import {
   type ApartmentUpdateInput
 } from "@/lib/validations/apartment";
 
+type ApartmentRow = Database["public"]["Tables"]["apartments"]["Row"];
+
 type ListApartmentFilters = {
   query?: string;
   status?: "active" | "inactive" | "all";
 };
 
-export async function listApartments(filters: ListApartmentFilters = {}) {
+export async function listApartments(
+  filters: ListApartmentFilters = {}
+): Promise<ApartmentRow[]> {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("apartments")
@@ -40,7 +45,7 @@ export async function listApartments(filters: ListApartmentFilters = {}) {
   });
 }
 
-export async function getApartmentById(id: string) {
+export async function getApartmentById(id: string): Promise<ApartmentRow | null> {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("apartments")
@@ -56,11 +61,13 @@ export async function getApartmentById(id: string) {
 }
 
 export async function getApartmentDetails(id: string) {
-  const apartment = await getApartmentById(id);
+  const apartmentResult = await getApartmentById(id);
 
-  if (!apartment) {
+  if (!apartmentResult) {
     return null;
   }
+
+  const apartment: ApartmentRow = apartmentResult;
 
   const [bookings, expenses] = await Promise.all([
     listBookings({ apartmentId: id, includeCancelled: true }),

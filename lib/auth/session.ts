@@ -2,6 +2,7 @@ import { cache } from "react";
 import { redirect } from "next/navigation";
 
 import { createClient } from "@/lib/supabase/server";
+import type { Database } from "@/lib/supabase/database.types";
 
 export type CurrentAppUser = {
   id: string;
@@ -9,6 +10,11 @@ export type CurrentAppUser = {
   fullName: string;
   role: "owner" | "member";
 };
+
+type UserProfileRow = Pick<
+  Database["public"]["Tables"]["users"]["Row"],
+  "id" | "email" | "full_name" | "role"
+>;
 
 export const getCurrentAppUser = cache(async (): Promise<CurrentAppUser | null> => {
   const supabase = await createClient();
@@ -32,13 +38,13 @@ export const getCurrentAppUser = cache(async (): Promise<CurrentAppUser | null> 
     return null;
   }
 
-  const { data: profile } = await supabase
+  const { data: profileResult } = await supabase
     .from("users")
     .select("id, email, full_name, role")
     .eq("id", userId)
     .maybeSingle();
 
-  if (!profile) {
+  if (!profileResult) {
     return {
       id: userId,
       email,
@@ -46,6 +52,8 @@ export const getCurrentAppUser = cache(async (): Promise<CurrentAppUser | null> 
       role: "member"
     };
   }
+
+  const profile: UserProfileRow = profileResult;
 
   return {
     id: profile.id,

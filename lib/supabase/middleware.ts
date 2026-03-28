@@ -50,9 +50,8 @@ export async function updateSession(request: NextRequest) {
     }
   );
 
-  const {
-    data: { claims }
-  } = await supabase.auth.getClaims();
+  const { data: claimsData } = await supabase.auth.getClaims();
+  const claims = claimsData?.claims;
 
   const isAuthenticated = Boolean(claims?.sub);
   const isProtectedRoute = matchesRoute(request.nextUrl.pathname, protectedRoutes);

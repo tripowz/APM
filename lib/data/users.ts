@@ -72,13 +72,11 @@ export async function updateUserProfile(
 export async function createManagedUser(input: UserInviteInput) {
   const payload = userInviteSchema.parse(input);
   const admin = createAdminClient();
-  const {
-    data: { users },
-    error: listError
-  } = await admin.auth.admin.listUsers({
+  const { data: usersData, error: listError } = await admin.auth.admin.listUsers({
     page: 1,
     perPage: 1000
   });
+  const users = usersData?.users ?? [];
 
   if (listError) {
     throw new Error(`Failed to inspect existing users: ${listError.message}`);

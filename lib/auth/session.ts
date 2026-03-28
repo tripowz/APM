@@ -12,9 +12,8 @@ export type CurrentAppUser = {
 
 export const getCurrentAppUser = cache(async (): Promise<CurrentAppUser | null> => {
   const supabase = await createClient();
-  const {
-    data: { claims }
-  } = await supabase.auth.getClaims();
+  const { data: claimsData } = await supabase.auth.getClaims();
+  const claims = claimsData?.claims;
 
   const userId = claims?.sub;
   const email = typeof claims?.email === "string" ? claims.email : null;

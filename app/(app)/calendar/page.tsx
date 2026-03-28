@@ -14,6 +14,9 @@ import type { Database } from "@/lib/supabase/database.types";
 
 type ApartmentRow = Database["public"]["Tables"]["apartments"]["Row"];
 type BookingRow = Database["public"]["Tables"]["bookings"]["Row"];
+type CalendarBooking = BookingRow & {
+  apartment_title: string;
+};
 
 type CalendarPageProps = {
   searchParams?: Promise<{
@@ -41,7 +44,7 @@ export default async function CalendarPage({ searchParams }: CalendarPageProps) 
   const apartmentMap = new Map(
     apartments.map((apartment) => [apartment.id, apartment.title] as const)
   );
-  const enrichedBookings = bookings.map((booking) => ({
+  const enrichedBookings: CalendarBooking[] = bookings.map((booking) => ({
     ...booking,
     apartment_title: apartmentMap.get(booking.apartment_id) ?? "Unknown apartment"
   }));

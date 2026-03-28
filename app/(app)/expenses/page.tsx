@@ -16,6 +16,7 @@ import { formatCurrency } from "@/lib/formatters";
 import type { Database } from "@/lib/supabase/database.types";
 
 type ApartmentRow = Database["public"]["Tables"]["apartments"]["Row"];
+type ExpenseRow = Database["public"]["Tables"]["expenses"]["Row"];
 
 type ExpensesPageProps = {
   searchParams?: Promise<{
@@ -51,12 +52,13 @@ export default async function ExpensesPage({ searchParams }: ExpensesPageProps) 
     getSettings().catch((): SettingsRow | null => null)
   ]);
   const apartments: ApartmentRow[] = apartmentsResult;
+  const expenseRows: ExpenseRow[] = expenses;
 
   const currency = settings?.currency ?? "USD";
   const apartmentMap = new Map(
     apartments.map((apartment) => [apartment.id, apartment] as const)
   );
-  const totalExpenses = expenses.reduce(
+  const totalExpenses = expenseRows.reduce(
     (sum, expense) => sum + Number(expense.amount),
     0
   );
@@ -82,7 +84,7 @@ export default async function ExpensesPage({ searchParams }: ExpensesPageProps) 
       <SectionCard
         title="Filters"
         description="Filter expenses by date range, apartment, and category."
-        actions={<StatusBadge tone="info">{expenses.length} entries</StatusBadge>}
+        actions={<StatusBadge tone="info">{expenseRows.length} entries</StatusBadge>}
       >
         <form className="grid gap-4 xl:grid-cols-[160px_160px_240px_220px_auto]">
           <Input type="date" name="from" defaultValue={filters.from} />
@@ -115,7 +117,7 @@ export default async function ExpensesPage({ searchParams }: ExpensesPageProps) 
         title="Expense ledger"
         description={`Total spend in this filtered view: ${formatCurrency(totalExpenses, currency)}.`}
       >
-        {expenses.length === 0 ? (
+        {expenseRows.length === 0 ? (
           <div className="flex min-h-[260px] flex-col items-center justify-center gap-3 rounded-2xl border border-dashed border-border bg-surface-muted px-6 py-10 text-center">
             <div className="flex size-14 items-center justify-center rounded-2xl bg-white shadow-card">
               <ReceiptText className="size-6 text-foreground" />
@@ -140,7 +142,7 @@ export default async function ExpensesPage({ searchParams }: ExpensesPageProps) 
               <span className="text-right">Action</span>
             </div>
             <div className="divide-y divide-border">
-              {expenses.map((expense) => {
+              {expenseRows.map((expense) => {
                 const apartment = apartmentMap.get(expense.apartment_id);
 
                 return (

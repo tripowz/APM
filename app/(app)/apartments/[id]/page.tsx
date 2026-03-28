@@ -47,6 +47,8 @@ export default async function ApartmentDetailsPage({
   }
 
   const details: ApartmentDetails = detailsResult;
+  const apartmentBookings: ApartmentDetails["bookings"] = details.bookings;
+  const apartmentExpenses: ApartmentDetails["expenses"] = details.expenses;
 
   const currency = settings?.currency ?? "USD";
 
@@ -112,12 +114,12 @@ export default async function ApartmentDetailsPage({
           }
         >
           <div className="flex flex-col gap-3">
-            {details.bookings.length === 0 ? (
+            {apartmentBookings.length === 0 ? (
               <p className="text-sm text-muted-foreground">
                 No bookings yet for this apartment.
               </p>
             ) : (
-              details.bookings.map((booking) => (
+              apartmentBookings.map((booking) => (
                 <Link
                   key={booking.id}
                   href={`/bookings/${booking.id}/edit?returnTo=/apartments/${details.apartment.id}`}
@@ -157,12 +159,12 @@ export default async function ApartmentDetailsPage({
             </div>
 
             <div className="flex flex-col gap-3">
-              {details.expenses.length === 0 ? (
+              {apartmentExpenses.length === 0 ? (
                 <p className="text-sm text-muted-foreground">
                   No expenses recorded for this apartment yet.
                 </p>
               ) : (
-                details.expenses.map((expense) => (
+                apartmentExpenses.map((expense) => (
                   <div
                     key={expense.id}
                     className="rounded-2xl border border-border bg-surface-muted p-4"

@@ -48,18 +48,20 @@ export async function listBookings(
     query = query.neq("booking_status", "cancelled");
   }
 
-  const { data, error } = await query;
+  const { data: bookingsResult, error } = await query;
 
   if (error) {
     throw new Error(`Failed to load bookings: ${error.message}`);
   }
 
-  return data;
+  const bookings: BookingRow[] = bookingsResult ?? [];
+
+  return bookings;
 }
 
 export async function getBookingById(id: string): Promise<BookingRow | null> {
   const supabase = await createClient();
-  const { data, error } = await supabase
+  const { data: bookingResult, error } = await supabase
     .from("bookings")
     .select("*")
     .eq("id", id)
@@ -69,7 +71,7 @@ export async function getBookingById(id: string): Promise<BookingRow | null> {
     throw new Error(`Failed to load booking: ${error.message}`);
   }
 
-  return data;
+  return bookingResult;
 }
 
 async function assertBookingConflictFree(
@@ -127,7 +129,7 @@ export async function createBooking(input: BookingInput): Promise<BookingRow> {
   const payload = bookingSchema.parse(input);
   await assertBookingConflictFree(payload);
   const supabase = await createClient();
-  const { data, error } = await supabase
+  const { data: bookingResult, error } = await supabase
     .from("bookings")
     .insert(payload)
     .select("*")
@@ -137,7 +139,7 @@ export async function createBooking(input: BookingInput): Promise<BookingRow> {
     throw new Error(`Failed to create booking: ${error.message}`);
   }
 
-  return data;
+  return bookingResult;
 }
 
 export async function updateBooking(
@@ -157,7 +159,7 @@ export async function updateBooking(
 
   await assertBookingConflictFree(payload, id);
   const supabase = await createClient();
-  const { data, error } = await supabase
+  const { data: bookingResult, error } = await supabase
     .from("bookings")
     .update(payload)
     .eq("id", id)
@@ -168,7 +170,7 @@ export async function updateBooking(
     throw new Error(`Failed to update booking: ${error.message}`);
   }
 
-  return data;
+  return bookingResult;
 }
 
 export async function deleteBooking(id: string): Promise<void> {
@@ -182,7 +184,7 @@ export async function deleteBooking(id: string): Promise<void> {
 
 export async function cancelBooking(id: string): Promise<BookingRow> {
   const supabase = await createClient();
-  const { data, error } = await supabase
+  const { data: bookingResult, error } = await supabase
     .from("bookings")
     .update({
       booking_status: "cancelled"
@@ -195,5 +197,5 @@ export async function cancelBooking(id: string): Promise<BookingRow> {
     throw new Error(`Failed to cancel booking: ${error.message}`);
   }
 
-  return data;
+  return bookingResult;
 }

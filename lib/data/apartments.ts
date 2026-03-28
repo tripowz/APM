@@ -42,7 +42,7 @@ export async function listApartments(
   filters: ListApartmentFilters = {}
 ): Promise<ApartmentRow[]> {
   const supabase = await createClient();
-  const { data, error } = await supabase
+  const { data: apartmentsResult, error } = await supabase
     .from("apartments")
     .select("*")
     .order("title", { ascending: true });
@@ -51,7 +51,9 @@ export async function listApartments(
     throw new Error(`Failed to load apartments: ${error.message}`);
   }
 
-  return data.filter((apartment) => {
+  const apartments: ApartmentRow[] = apartmentsResult ?? [];
+
+  return apartments.filter((apartment: ApartmentRow) => {
     const matchesStatus =
       !filters.status || filters.status === "all" || apartment.status === filters.status;
     const search = filters.query?.trim().toLowerCase();
@@ -66,7 +68,7 @@ export async function listApartments(
 
 export async function getApartmentById(id: string): Promise<ApartmentRow | null> {
   const supabase = await createClient();
-  const { data, error } = await supabase
+  const { data: apartmentResult, error } = await supabase
     .from("apartments")
     .select("*")
     .eq("id", id)
@@ -76,7 +78,7 @@ export async function getApartmentById(id: string): Promise<ApartmentRow | null>
     throw new Error(`Failed to load apartment: ${error.message}`);
   }
 
-  return data;
+  return apartmentResult;
 }
 
 export async function getApartmentDetails(
@@ -98,13 +100,16 @@ export async function getApartmentDetails(
   const expenses: ExpenseRow[] = expensesResult;
 
   const activeBookings: BookingRow[] = bookings.filter(
-    (booking) => booking.booking_status !== "cancelled"
+    (booking: BookingRow) => booking.booking_status !== "cancelled"
   );
   const revenue = activeBookings
-    .filter((booking) => isRevenueBookingStatus(booking.booking_status))
-    .reduce((total, booking) => total + Number(booking.total_amount), 0);
+    .filter((booking: BookingRow) => isRevenueBookingStatus(booking.booking_status))
+    .reduce(
+      (total, booking: BookingRow) => total + Number(booking.total_amount),
+      0
+    );
   const totalExpenses = expenses.reduce(
-    (total, expense) => total + Number(expense.amount),
+    (total, expense: ExpenseRow) => total + Number(expense.amount),
     0
   );
 
@@ -141,10 +146,13 @@ export async function listApartmentSummaries(
       (expense) => expense.apartment_id === apartment.id
     );
     const revenue = apartmentBookings
-      .filter((booking) => isRevenueBookingStatus(booking.booking_status))
-      .reduce((total, booking) => total + Number(booking.total_amount), 0);
+      .filter((booking: BookingRow) => isRevenueBookingStatus(booking.booking_status))
+      .reduce(
+        (total, booking: BookingRow) => total + Number(booking.total_amount),
+        0
+      );
     const expensesTotal = apartmentExpenses.reduce(
-      (total, expense) => total + Number(expense.amount),
+      (total, expense: ExpenseRow) => total + Number(expense.amount),
       0
     );
 
@@ -163,7 +171,7 @@ export async function listApartmentSummaries(
 export async function createApartment(input: ApartmentInput): Promise<ApartmentRow> {
   const supabase = await createClient();
   const payload = apartmentSchema.parse(input);
-  const { data, error } = await supabase
+  const { data: apartmentResult, error } = await supabase
     .from("apartments")
     .insert(payload)
     .select("*")
@@ -173,7 +181,7 @@ export async function createApartment(input: ApartmentInput): Promise<ApartmentR
     throw new Error(`Failed to create apartment: ${error.message}`);
   }
 
-  return data;
+  return apartmentResult;
 }
 
 export async function updateApartment(
@@ -182,7 +190,7 @@ export async function updateApartment(
 ): Promise<ApartmentRow> {
   const payload = apartmentUpdateSchema.parse(input);
   const supabase = await createClient();
-  const { data, error } = await supabase
+  const { data: apartmentResult, error } = await supabase
     .from("apartments")
     .update(payload)
     .eq("id", id)
@@ -193,7 +201,7 @@ export async function updateApartment(
     throw new Error(`Failed to update apartment: ${error.message}`);
   }
 
-  return data;
+  return apartmentResult;
 }
 
 export async function deleteApartment(id: string): Promise<void> {

@@ -56,10 +56,10 @@ export default async function ExpensesPage({ searchParams }: ExpensesPageProps) 
 
   const currency = settings?.currency ?? "USD";
   const apartmentMap = new Map(
-    apartments.map((apartment) => [apartment.id, apartment] as const)
+    apartments.map((apartment: ApartmentRow) => [apartment.id, apartment] as const)
   );
   const totalExpenses = expenseRows.reduce(
-    (sum, expense) => sum + Number(expense.amount),
+    (sum, expense: ExpenseRow) => sum + Number(expense.amount),
     0
   );
 

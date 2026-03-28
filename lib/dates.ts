@@ -80,7 +80,7 @@ export function getCalendarGrid(monthStart: Date) {
   const gridEnd = new Date(lastDay);
   gridEnd.setUTCDate(lastDay.getUTCDate() + (6 - lastDay.getUTCDay()));
 
-  return eachDayOfInterval(gridStart, gridEnd).map((date) => ({
+  return eachDayOfInterval(gridStart, gridEnd).map((date: Date) => ({
     date,
     iso: toIsoDate(date),
     isCurrentMonth: date.getUTCMonth() === month,

@@ -53,18 +53,20 @@ export async function listExpenses(
     query = query.eq("category", resolvedFilters.category);
   }
 
-  const { data, error } = await query;
+  const { data: expensesResult, error } = await query;
 
   if (error) {
     throw new Error(`Failed to load expenses: ${error.message}`);
   }
 
-  return data;
+  const expenses: ExpenseRow[] = expensesResult ?? [];
+
+  return expenses;
 }
 
 export async function getExpenseById(id: string): Promise<ExpenseRow | null> {
   const supabase = await createClient();
-  const { data, error } = await supabase
+  const { data: expenseResult, error } = await supabase
     .from("expenses")
     .select("*")
     .eq("id", id)
@@ -74,13 +76,13 @@ export async function getExpenseById(id: string): Promise<ExpenseRow | null> {
     throw new Error(`Failed to load expense: ${error.message}`);
   }
 
-  return data;
+  return expenseResult;
 }
 
 export async function createExpense(input: ExpenseInput): Promise<ExpenseRow> {
   const payload = expenseSchema.parse(input);
   const supabase = await createClient();
-  const { data, error } = await supabase
+  const { data: expenseResult, error } = await supabase
     .from("expenses")
     .insert(payload)
     .select("*")
@@ -90,7 +92,7 @@ export async function createExpense(input: ExpenseInput): Promise<ExpenseRow> {
     throw new Error(`Failed to create expense: ${error.message}`);
   }
 
-  return data;
+  return expenseResult;
 }
 
 export async function updateExpense(
@@ -99,7 +101,7 @@ export async function updateExpense(
 ): Promise<ExpenseRow> {
   const payload = expenseUpdateSchema.parse(input);
   const supabase = await createClient();
-  const { data, error } = await supabase
+  const { data: expenseResult, error } = await supabase
     .from("expenses")
     .update(payload)
     .eq("id", id)
@@ -110,7 +112,7 @@ export async function updateExpense(
     throw new Error(`Failed to update expense: ${error.message}`);
   }
 
-  return data;
+  return expenseResult;
 }
 
 export async function deleteExpense(id: string): Promise<void> {

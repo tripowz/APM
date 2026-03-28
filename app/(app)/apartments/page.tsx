@@ -96,7 +96,7 @@ export default async function ApartmentsPage({
           </div>
         ) : (
           <div className="grid gap-4 xl:grid-cols-2">
-            {apartments.map((apartment) => (
+            {apartments.map((apartment: ApartmentSummary) => (
               <article
                 key={apartment.id}
                 className="surface-muted flex flex-col gap-5 p-5"

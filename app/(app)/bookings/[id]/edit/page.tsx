@@ -48,7 +48,7 @@ export default async function EditBookingPage({
   const booking: BookingRow = bookingResult;
   const apartments: ApartmentRow[] = apartmentsResult;
   const apartmentMap = new Map(
-    apartments.map((apartment) => [apartment.id, apartment.title] as const)
+    apartments.map((apartment: ApartmentRow) => [apartment.id, apartment.title] as const)
   );
 
   const apartmentTitle = apartmentMap.get(booking.apartment_id) ?? null;

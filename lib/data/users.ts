@@ -13,7 +13,7 @@ export type UserRow = Database["public"]["Tables"]["users"]["Row"];
 
 export async function listUsers(): Promise<UserRow[]> {
   const supabase = await createClient();
-  const { data, error } = await supabase
+  const { data: usersResult, error } = await supabase
     .from("users")
     .select("*")
     .order("created_at", { ascending: true });
@@ -22,7 +22,9 @@ export async function listUsers(): Promise<UserRow[]> {
     throw new Error(`Failed to load users: ${error.message}`);
   }
 
-  return data.sort((a, b) => {
+  const users: UserRow[] = usersResult ?? [];
+
+  return users.sort((a: UserRow, b: UserRow) => {
     if (a.role !== b.role) {
       return a.role === "owner" ? -1 : 1;
     }
@@ -33,7 +35,7 @@ export async function listUsers(): Promise<UserRow[]> {
 
 export async function getUserById(id: string): Promise<UserRow | null> {
   const supabase = await createClient();
-  const { data, error } = await supabase
+  const { data: userResult, error } = await supabase
     .from("users")
     .select("*")
     .eq("id", id)
@@ -43,7 +45,7 @@ export async function getUserById(id: string): Promise<UserRow | null> {
     throw new Error(`Failed to load user: ${error.message}`);
   }
 
-  return data;
+  return userResult;
 }
 
 export async function updateUserProfile(
@@ -55,7 +57,7 @@ export async function updateUserProfile(
 ): Promise<UserRow> {
   const payload = userProfileUpdateSchema.parse(input);
   const supabase = await createClient();
-  const { data, error } = await supabase
+  const { data: userResult, error } = await supabase
     .from("users")
     .update(payload)
     .eq("id", id)
@@ -66,7 +68,7 @@ export async function updateUserProfile(
     throw new Error(`Failed to update user: ${error.message}`);
   }
 
-  return data;
+  return userResult;
 }
 
 export async function createManagedUser(

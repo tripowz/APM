@@ -19,6 +19,7 @@ import { formatShortDate } from "@/lib/dates";
 import type { Database } from "@/lib/supabase/database.types";
 
 type BookingRow = Database["public"]["Tables"]["bookings"]["Row"];
+type ApartmentRow = Database["public"]["Tables"]["apartments"]["Row"];
 
 type EditBookingPageProps = {
   params: Promise<{
@@ -46,9 +47,11 @@ export default async function EditBookingPage({
 
   const booking: BookingRow = bookingResult;
 
-  const apartment = await getApartmentById(booking.apartment_id);
+  const apartment: ApartmentRow | null = await getApartmentById(booking.apartment_id);
+  const apartmentId = apartment?.id;
+  const apartmentTitle = apartment?.title;
   const returnTo =
-    resolvedSearchParams?.returnTo ?? (apartment ? `/apartments/${apartment.id}` : "/calendar");
+    resolvedSearchParams?.returnTo ?? (apartmentId ? `/apartments/${apartmentId}` : "/calendar");
 
   return (
     <div className="flex flex-col gap-6">
@@ -65,7 +68,7 @@ export default async function EditBookingPage({
 
       <SectionCard
         title="Booking status"
-        description={apartment ? `Apartment: ${apartment.title}` : "Booking details"}
+        description={apartmentTitle ? `Apartment: ${apartmentTitle}` : "Booking details"}
         actions={
           <div className="flex flex-wrap items-center gap-2">
             <BookingStatusBadge status={booking.booking_status} />

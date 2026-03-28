@@ -186,11 +186,12 @@ export async function deleteBooking(id: string): Promise<void> {
 
 export async function cancelBooking(id: string): Promise<BookingRow> {
   const supabase = await createClient();
+  const payload: BookingUpdate = {
+    booking_status: "cancelled"
+  };
   const { data: bookingResult, error } = await supabase
     .from("bookings")
-    .update({
-      booking_status: "cancelled"
-    })
+    .update(payload)
     .eq("id", id)
     .select("*")
     .single();

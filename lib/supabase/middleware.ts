@@ -3,8 +3,8 @@ import { NextResponse, type NextRequest } from "next/server";
 
 import type { Database } from "@/lib/supabase/database.types";
 import {
-  supabasePublishableKey,
-  supabaseUrl
+  getSupabasePublishableKey,
+  getSupabaseUrl
 } from "@/lib/supabase/env";
 
 const protectedRoutes = [
@@ -28,8 +28,8 @@ export async function updateSession(request: NextRequest) {
   });
 
   const supabase = createServerClient<Database>(
-    supabaseUrl,
-    supabasePublishableKey,
+    getSupabaseUrl(),
+    getSupabasePublishableKey(),
     {
       cookies: {
         getAll() {

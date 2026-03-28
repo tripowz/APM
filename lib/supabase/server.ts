@@ -3,29 +3,35 @@ import { cookies } from "next/headers";
 
 import type { Database } from "@/lib/supabase/database.types";
 import {
-  supabasePublishableKey,
-  supabaseUrl
+  getSupabasePublishableKey,
+  getSupabaseUrl
 } from "@/lib/supabase/env";
 
-export type ServerSupabaseClient = ReturnType<typeof createServerClient<Database>>;
+const createTypedServerClient = createServerClient<Database>;
+
+export type ServerSupabaseClient = ReturnType<typeof createTypedServerClient>;
 
 export async function createClient(): Promise<ServerSupabaseClient> {
   const cookieStore = await cookies();
 
-  return createServerClient<Database>(supabaseUrl, supabasePublishableKey, {
-    cookies: {
-      getAll() {
-        return cookieStore.getAll();
-      },
-      setAll(cookiesToSet) {
-        try {
-          cookiesToSet.forEach(({ name, value, options }) => {
-            cookieStore.set(name, value, options);
-          });
-        } catch {
-          // Server Components cannot always mutate cookies. Middleware refreshes sessions.
+  return createTypedServerClient(
+    getSupabaseUrl(),
+    getSupabasePublishableKey(),
+    {
+      cookies: {
+        getAll() {
+          return cookieStore.getAll();
+        },
+        setAll(cookiesToSet) {
+          try {
+            cookiesToSet.forEach(({ name, value, options }) => {
+              cookieStore.set(name, value, options);
+            });
+          } catch {
+            // Server Components cannot always mutate cookies. Middleware refreshes sessions.
+          }
         }
       }
     }
-  });
+  );
 }

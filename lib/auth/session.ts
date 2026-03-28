@@ -3,13 +3,7 @@ import { redirect } from "next/navigation";
 
 import { createClient } from "@/lib/supabase/server";
 import type { Database } from "@/lib/supabase/database.types";
-
-export type CurrentAppUser = {
-  id: string;
-  email: string;
-  fullName: string;
-  role: "owner" | "member";
-};
+import type { CurrentAppUser } from "@/lib/types/app";
 
 type UserProfileRow = Pick<
   Database["public"]["Tables"]["users"]["Row"],

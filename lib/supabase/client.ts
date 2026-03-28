@@ -2,14 +2,17 @@ import { createBrowserClient } from "@supabase/ssr";
 
 import type { Database } from "@/lib/supabase/database.types";
 import {
-  supabasePublishableKey,
-  supabaseUrl
+  getSupabasePublishableKey,
+  getSupabaseUrl
 } from "@/lib/supabase/env";
 
-export type BrowserSupabaseClient = ReturnType<
-  typeof createBrowserClient<Database>
->;
+const createTypedBrowserClient = createBrowserClient<Database>;
+
+export type BrowserSupabaseClient = ReturnType<typeof createTypedBrowserClient>;
 
 export function createClient(): BrowserSupabaseClient {
-  return createBrowserClient<Database>(supabaseUrl, supabasePublishableKey);
+  return createTypedBrowserClient(
+    getSupabaseUrl(),
+    getSupabasePublishableKey()
+  );
 }

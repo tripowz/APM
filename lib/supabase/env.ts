@@ -24,8 +24,13 @@ function requireSupabasePublicKey() {
   return value;
 }
 
-export const supabaseUrl = requireEnv("NEXT_PUBLIC_SUPABASE_URL");
-export const supabasePublishableKey = requireSupabasePublicKey();
+export function getSupabaseUrl() {
+  return requireEnv("NEXT_PUBLIC_SUPABASE_URL");
+}
+
+export function getSupabasePublishableKey() {
+  return requireSupabasePublicKey();
+}
 
 export function hasServiceRoleKey() {
   return Boolean(process.env.SUPABASE_SERVICE_ROLE_KEY);

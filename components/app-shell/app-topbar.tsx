@@ -14,8 +14,8 @@ import {
   SheetTitle,
   SheetTrigger
 } from "@/components/ui/sheet";
-import type { CurrentAppUser } from "@/lib/auth/session";
 import { getPageMeta } from "@/lib/navigation";
+import type { CurrentAppUser } from "@/lib/types/app";
 
 type AppTopbarProps = {
   currentUser: CurrentAppUser;

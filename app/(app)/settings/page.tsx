@@ -8,12 +8,12 @@ import { BusinessSettingsForm } from "@/components/settings/business-settings-fo
 import { InviteUserForm } from "@/components/settings/invite-user-form";
 import { UserRoleForm } from "@/components/settings/user-role-form";
 import {
-  requireAuthenticatedUser,
-  type CurrentAppUser
+  requireAuthenticatedUser
 } from "@/lib/auth/session";
 import { getSettings, type SettingsRow } from "@/lib/data/settings";
 import { listUsers, type UserRow } from "@/lib/data/users";
 import { hasServiceRoleKey } from "@/lib/supabase/env";
+import type { CurrentAppUser } from "@/lib/types/app";
 
 export default async function SettingsPage() {
   const currentUser: CurrentAppUser = await requireAuthenticatedUser();

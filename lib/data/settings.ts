@@ -27,10 +27,11 @@ export async function getSettings(): Promise<SettingsRow | null> {
 
 export async function upsertSettings(input: SettingsInput): Promise<SettingsRow> {
   const payload: SettingsInsert = settingsSchema.parse(input);
+  const settingsPayload: SettingsInsert = { id: 1, ...payload };
   const supabase = await createClient();
   const { data: settingsResult, error } = await supabase
     .from("settings")
-    .upsert({ id: 1, ...payload })
+    .upsert(settingsPayload)
     .select("*")
     .single();
 

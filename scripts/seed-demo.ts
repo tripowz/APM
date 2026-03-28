@@ -2,8 +2,8 @@ import { createClient } from "@supabase/supabase-js";
 
 import type { Database } from "../lib/supabase/database.types";
 import {
-  requireServiceRoleKey,
-  supabaseUrl
+  getSupabaseUrl,
+  requireServiceRoleKey
 } from "../lib/supabase/env";
 
 type SeedUser = {
@@ -146,12 +146,25 @@ const settings: Database["public"]["Tables"]["settings"]["Insert"] = {
   timezone: "Asia/Tashkent"
 };
 
-const supabase = createClient<Database>(supabaseUrl, requireServiceRoleKey(), {
-  auth: {
-    autoRefreshToken: false,
-    persistSession: false
+type UserInsert = Database["public"]["Tables"]["users"]["Insert"];
+type SettingsInsert = Database["public"]["Tables"]["settings"]["Insert"];
+type ApartmentInsert = Database["public"]["Tables"]["apartments"]["Insert"];
+type BookingInsert = Database["public"]["Tables"]["bookings"]["Insert"];
+type ExpenseInsert = Database["public"]["Tables"]["expenses"]["Insert"];
+const createTypedSupabaseClient = createClient<Database>;
+
+type SeedSupabaseClient = ReturnType<typeof createTypedSupabaseClient>;
+
+const supabase: SeedSupabaseClient = createTypedSupabaseClient(
+  getSupabaseUrl(),
+  requireServiceRoleKey(),
+  {
+    auth: {
+      autoRefreshToken: false,
+      persistSession: false
+    }
   }
-});
+);
 
 async function ensureUser(seedUser: SeedUser): Promise<string> {
   const { data: usersData, error: listError } = await supabase.auth.admin.listUsers({
@@ -204,7 +217,7 @@ async function ensureUser(seedUser: SeedUser): Promise<string> {
 }
 
 async function main() {
-  const seededUsers = await Promise.all(
+  const seededUsers: UserInsert[] = await Promise.all(
     seedUsers.map(async (seedUser) => {
       const id = await ensureUser(seedUser);
 
@@ -223,25 +236,31 @@ async function main() {
     throw userError;
   }
 
-  const { error: settingsError } = await supabase.from("settings").upsert(settings);
+  const settingsPayload: SettingsInsert = settings;
+  const { error: settingsError } = await supabase.from("settings").upsert(settingsPayload);
 
   if (settingsError) {
     throw settingsError;
   }
 
-  const { error: apartmentError } = await supabase.from("apartments").upsert(apartments);
+  const apartmentPayload: ApartmentInsert[] = apartments;
+  const { error: apartmentError } = await supabase
+    .from("apartments")
+    .upsert(apartmentPayload);
 
   if (apartmentError) {
     throw apartmentError;
   }
 
-  const { error: bookingError } = await supabase.from("bookings").upsert(bookings);
+  const bookingPayload: BookingInsert[] = bookings;
+  const { error: bookingError } = await supabase.from("bookings").upsert(bookingPayload);
 
   if (bookingError) {
     throw bookingError;
   }
 
-  const { error: expenseError } = await supabase.from("expenses").upsert(expenses);
+  const expensePayload: ExpenseInsert[] = expenses;
+  const { error: expenseError } = await supabase.from("expenses").upsert(expensePayload);
 
   if (expenseError) {
     throw expenseError;

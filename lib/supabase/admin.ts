@@ -3,12 +3,17 @@ import "server-only";
 import { createClient } from "@supabase/supabase-js";
 
 import type { Database } from "@/lib/supabase/database.types";
-import { requireServiceRoleKey, supabaseUrl } from "@/lib/supabase/env";
+import {
+  getSupabaseUrl,
+  requireServiceRoleKey
+} from "@/lib/supabase/env";
 
-export type AdminSupabaseClient = ReturnType<typeof createClient<Database>>;
+const createTypedAdminClient = createClient<Database>;
+
+export type AdminSupabaseClient = ReturnType<typeof createTypedAdminClient>;
 
 export function createAdminClient(): AdminSupabaseClient {
-  return createClient<Database>(supabaseUrl, requireServiceRoleKey(), {
+  return createTypedAdminClient(getSupabaseUrl(), requireServiceRoleKey(), {
     auth: {
       autoRefreshToken: false,
       persistSession: false

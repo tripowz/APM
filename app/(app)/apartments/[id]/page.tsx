@@ -24,14 +24,11 @@ export default async function ApartmentDetailsPage({
   params
 }: ApartmentDetailsPageProps) {
   const { id } = await params;
-  const [details, settings] = await Promise.all([
+  const [detailsResult, settings] = await Promise.all([
     getApartmentDetails(id),
     getSettings().catch(() => null)
   ]);
-
-  if (!details) {
-    notFound();
-  }
+  const details = detailsResult ?? notFound();
 
   const currency = settings?.currency ?? "USD";
 

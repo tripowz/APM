@@ -24,14 +24,11 @@ export default async function EditExpensePage({
 }: EditExpensePageProps) {
   const { id } = await params;
   const resolvedSearchParams = await searchParams;
-  const [expense, apartments] = await Promise.all([
+  const [expenseResult, apartments] = await Promise.all([
     getExpenseById(id),
     listApartments({ status: "all" })
   ]);
-
-  if (!expense) {
-    notFound();
-  }
+  const expense = expenseResult ?? notFound();
 
   const returnTo = resolvedSearchParams?.returnTo ?? "/expenses";
 

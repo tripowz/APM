@@ -32,14 +32,11 @@ export default async function EditBookingPage({
 }: EditBookingPageProps) {
   const { id } = await params;
   const resolvedSearchParams = await searchParams;
-  const [booking, apartments] = await Promise.all([
+  const [bookingResult, apartments] = await Promise.all([
     getBookingById(id),
     listApartments({ status: "all" })
   ]);
-
-  if (!booking) {
-    notFound();
-  }
+  const booking = bookingResult ?? notFound();
 
   const apartment = await getApartmentById(booking.apartment_id);
   const returnTo =

@@ -15,11 +15,7 @@ export default async function EditApartmentPage({
   params
 }: EditApartmentPageProps) {
   const { id } = await params;
-  const apartment = await getApartmentById(id);
-
-  if (!apartment) {
-    notFound();
-  }
+  const apartment = (await getApartmentById(id)) ?? notFound();
 
   return (
     <div className="flex flex-col gap-6">

@@ -1,9 +1,8 @@
-const requiredKeys = [
-  "NEXT_PUBLIC_SUPABASE_URL",
-  "NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY"
-] as const;
+type RequiredEnvKey =
+  | "NEXT_PUBLIC_SUPABASE_URL"
+  | "NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY";
 
-function requireEnv(key: (typeof requiredKeys)[number]) {
+function requireEnv(key: RequiredEnvKey) {
   const value = process.env[key];
 
   if (!value) {

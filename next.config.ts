@@ -8,10 +8,8 @@ const nextConfig: NextConfig = {
 };
 
 if (process.env.NODE_ENV === "development" && !process.env.VERCEL) {
-  const { initOpenNextCloudflareForDev } = await import(
-    "@opennextjs/cloudflare"
-  );
-
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const { initOpenNextCloudflareForDev } = require("@opennextjs/cloudflare");
   initOpenNextCloudflareForDev();
 }
 

@@ -1,5 +1,4 @@
 import type { NextConfig } from "next";
-import { initOpenNextCloudflareForDev } from "@opennextjs/cloudflare";
 
 const nextConfig: NextConfig = {
   reactStrictMode: true,
@@ -8,6 +7,12 @@ const nextConfig: NextConfig = {
   }
 };
 
-initOpenNextCloudflareForDev();
+if (process.env.NODE_ENV === "development" && !process.env.VERCEL) {
+  const { initOpenNextCloudflareForDev } = await import(
+    "@opennextjs/cloudflare"
+  );
+
+  initOpenNextCloudflareForDev();
+}
 
 export default nextConfig;

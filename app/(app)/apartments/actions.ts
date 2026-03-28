@@ -8,6 +8,10 @@ import {
   createApartment,
   updateApartment
 } from "@/lib/data/apartments";
+import type {
+  ApartmentInput,
+  ApartmentUpdateInput
+} from "@/lib/validations/apartment";
 
 export type ApartmentFormState = {
   error?: string;
@@ -44,9 +48,17 @@ export async function saveApartmentAction(
   }
 
   try {
+    const apartmentPayload: ApartmentInput = {
+      title: parsed.data.title,
+      address: parsed.data.address,
+      base_price: parsed.data.base_price,
+      status: parsed.data.status,
+      notes: parsed.data.notes?.trim() ? parsed.data.notes.trim() : null
+    };
+
     const apartment = parsed.data.apartmentId
-      ? await updateApartment(parsed.data.apartmentId, parsed.data)
-      : await createApartment(parsed.data);
+      ? await updateApartment(parsed.data.apartmentId, apartmentPayload as ApartmentUpdateInput)
+      : await createApartment(apartmentPayload);
 
     revalidatePath("/apartments");
     revalidatePath(`/apartments/${apartment.id}`);

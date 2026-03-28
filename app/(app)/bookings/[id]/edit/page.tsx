@@ -13,13 +13,12 @@ import {
 import { PageHeader } from "@/components/shared/page-header";
 import { SectionCard } from "@/components/shared/section-card";
 import { Button } from "@/components/ui/button";
-import { getApartmentById, listApartments } from "@/lib/data/apartments";
+import { listApartments } from "@/lib/data/apartments";
 import { getBookingById } from "@/lib/data/bookings";
 import { formatShortDate } from "@/lib/dates";
 import type { Database } from "@/lib/supabase/database.types";
 
 type BookingRow = Database["public"]["Tables"]["bookings"]["Row"];
-type ApartmentRow = Database["public"]["Tables"]["apartments"]["Row"];
 
 type EditBookingPageProps = {
   params: Promise<{
@@ -47,11 +46,11 @@ export default async function EditBookingPage({
 
   const booking: BookingRow = bookingResult;
 
-  const apartment: ApartmentRow | null = await getApartmentById(booking.apartment_id);
-  const apartmentId = apartment?.id;
-  const apartmentTitle = apartment?.title;
+  const apartmentTitle =
+    apartments.find((apartment) => apartment.id === booking.apartment_id)?.title ??
+    null;
   const returnTo =
-    resolvedSearchParams?.returnTo ?? (apartmentId ? `/apartments/${apartmentId}` : "/calendar");
+    resolvedSearchParams?.returnTo ?? `/apartments/${booking.apartment_id}`;
 
   return (
     <div className="flex flex-col gap-6">

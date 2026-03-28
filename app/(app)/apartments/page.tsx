@@ -11,6 +11,8 @@ import { listApartmentSummaries } from "@/lib/data/apartments";
 import { getSettings, type SettingsRow } from "@/lib/data/settings";
 import { formatCompactNumber, formatCurrency } from "@/lib/formatters";
 
+type ApartmentSummary = Awaited<ReturnType<typeof listApartmentSummaries>>[number];
+
 type ApartmentsPageProps = {
   searchParams?: Promise<{
     q?: string;
@@ -24,13 +26,14 @@ export default async function ApartmentsPage({
   const params = await searchParams;
   const query = params?.q?.trim() ?? "";
   const status = params?.status ?? "all";
-  const [apartments, settings] = await Promise.all([
+  const [apartmentsResult, settings] = await Promise.all([
     listApartmentSummaries({
       query,
       status
     }),
     getSettings().catch((): SettingsRow | null => null)
   ]);
+  const apartments: ApartmentSummary[] = apartmentsResult;
 
   const currency = settings?.currency ?? "USD";
 

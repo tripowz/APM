@@ -13,6 +13,9 @@ import { listExpenses } from "@/lib/data/expenses";
 import { getSettings, type SettingsRow } from "@/lib/data/settings";
 import { getMonthStart, toIsoDate } from "@/lib/dates";
 import { formatCurrency } from "@/lib/formatters";
+import type { Database } from "@/lib/supabase/database.types";
+
+type ApartmentRow = Database["public"]["Tables"]["apartments"]["Row"];
 
 type ExpensesPageProps = {
   searchParams?: Promise<{
@@ -42,11 +45,12 @@ export default async function ExpensesPage({ searchParams }: ExpensesPageProps) 
     category: params?.category ?? "all"
   } as const;
 
-  const [apartments, expenses, settings] = await Promise.all([
+  const [apartmentsResult, expenses, settings] = await Promise.all([
     listApartments({ status: "all" }),
     listExpenses(filters),
     getSettings().catch((): SettingsRow | null => null)
   ]);
+  const apartments: ApartmentRow[] = apartmentsResult;
 
   const currency = settings?.currency ?? "USD";
   const apartmentMap = new Map(

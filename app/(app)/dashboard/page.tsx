@@ -22,13 +22,17 @@ import { getDashboardMetrics } from "@/lib/business/metrics";
 import { listApartments } from "@/lib/data/apartments";
 import { getSettings, type SettingsRow } from "@/lib/data/settings";
 import { formatCurrency } from "@/lib/formatters";
+import type { Database } from "@/lib/supabase/database.types";
+
+type ApartmentRow = Database["public"]["Tables"]["apartments"]["Row"];
 
 export default async function DashboardPage() {
-  const [metrics, apartments, settings] = await Promise.all([
+  const [metrics, apartmentsResult, settings] = await Promise.all([
     getDashboardMetrics(),
     listApartments({ status: "all" }),
     getSettings().catch((): SettingsRow | null => null)
   ]);
+  const apartments: ApartmentRow[] = apartmentsResult;
 
   const currency = settings?.currency ?? "USD";
   const apartmentMap = new Map(

@@ -10,6 +10,10 @@ import { Select } from "@/components/ui/select";
 import { addMonths, formatMonthLabel, getMonthKey, getMonthStart } from "@/lib/dates";
 import { listApartments } from "@/lib/data/apartments";
 import { listBookings } from "@/lib/data/bookings";
+import type { Database } from "@/lib/supabase/database.types";
+
+type ApartmentRow = Database["public"]["Tables"]["apartments"]["Row"];
+type BookingRow = Database["public"]["Tables"]["bookings"]["Row"];
 
 type CalendarPageProps = {
   searchParams?: Promise<{
@@ -24,13 +28,15 @@ export default async function CalendarPage({ searchParams }: CalendarPageProps) 
   const monthKey = getMonthKey(monthStart);
   const apartmentId = params?.apartmentId;
 
-  const [apartments, bookings] = await Promise.all([
+  const [apartmentsResult, bookingsResult] = await Promise.all([
     listApartments({ status: "all" }),
     listBookings({
       apartmentId,
       month: monthKey
     })
   ]);
+  const apartments: ApartmentRow[] = apartmentsResult;
+  const bookings: BookingRow[] = bookingsResult;
 
   const apartmentMap = new Map(
     apartments.map((apartment) => [apartment.id, apartment.title] as const)

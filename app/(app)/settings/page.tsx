@@ -12,12 +12,15 @@ import { getSettings, type SettingsRow } from "@/lib/data/settings";
 import { listUsers } from "@/lib/data/users";
 import { hasServiceRoleKey } from "@/lib/supabase/env";
 
+type UserRow = Awaited<ReturnType<typeof listUsers>>[number];
+
 export default async function SettingsPage() {
   const currentUser = await requireAuthenticatedUser();
-  const [settings, users] = await Promise.all([
+  const [settings, usersResult] = await Promise.all([
     getSettings().catch((): SettingsRow | null => null),
     listUsers()
   ]);
+  const users: UserRow[] = usersResult;
   const canManageUsers = currentUser.role === "owner";
   const inAppInvitesEnabled = hasServiceRoleKey();
 

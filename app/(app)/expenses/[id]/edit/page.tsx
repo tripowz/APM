@@ -11,6 +11,7 @@ import { getExpenseById } from "@/lib/data/expenses";
 import type { Database } from "@/lib/supabase/database.types";
 
 type ExpenseRow = Database["public"]["Tables"]["expenses"]["Row"];
+type ApartmentRow = Database["public"]["Tables"]["apartments"]["Row"];
 
 type EditExpensePageProps = {
   params: Promise<{
@@ -27,7 +28,7 @@ export default async function EditExpensePage({
 }: EditExpensePageProps) {
   const { id } = await params;
   const resolvedSearchParams = await searchParams;
-  const [expenseResult, apartments] = await Promise.all([
+  const [expenseResult, apartmentsResult] = await Promise.all([
     getExpenseById(id),
     listApartments({ status: "all" })
   ]);
@@ -37,6 +38,7 @@ export default async function EditExpensePage({
   }
 
   const expense: ExpenseRow = expenseResult;
+  const apartments: ApartmentRow[] = apartmentsResult;
 
   const returnTo = resolvedSearchParams?.returnTo ?? "/expenses";
 

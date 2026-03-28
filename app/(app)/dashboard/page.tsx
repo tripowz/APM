@@ -37,6 +37,10 @@ export default async function DashboardPage() {
   ]);
   const metrics: DashboardMetrics = metricsResult;
   const apartments: ApartmentRow[] = apartmentsResult;
+  const recentBookings: DashboardMetrics["recentBookings"] = metrics.recentBookings;
+  const apartmentPerformance: DashboardMetrics["apartmentPerformance"] =
+    metrics.apartmentPerformance;
+  const revenueTrend: DashboardMetrics["revenueTrend"] = metrics.revenueTrend;
 
   const currency = settings?.currency ?? "USD";
   const apartmentMap = new Map(
@@ -117,12 +121,12 @@ export default async function DashboardPage() {
           description="The latest reservation activity, including status and payment visibility."
         >
           <div className="flex flex-col gap-3">
-            {metrics.recentBookings.length === 0 ? (
+            {recentBookings.length === 0 ? (
               <p className="text-sm text-muted-foreground">
                 No bookings have been created yet.
               </p>
             ) : (
-              metrics.recentBookings.map((booking) => (
+              recentBookings.map((booking) => (
                 <Link
                   key={booking.id}
                   href={`/bookings/${booking.id}/edit?returnTo=/dashboard`}
@@ -152,7 +156,7 @@ export default async function DashboardPage() {
           title="Revenue trend"
           description="A lightweight 6-month view of qualified booking revenue."
         >
-          <RevenueTrendChart data={metrics.revenueTrend} currency={currency} />
+          <RevenueTrendChart data={revenueTrend} currency={currency} />
         </SectionCard>
       </section>
 
@@ -160,7 +164,7 @@ export default async function DashboardPage() {
         title="Apartment performance summary"
         description="A simple operational breakdown showing which apartments are contributing the most right now."
       >
-        {metrics.apartmentPerformance.length === 0 ? (
+        {apartmentPerformance.length === 0 ? (
           <EmptyState
             icon={Wallet}
             title="No apartments are ready for performance tracking"
@@ -176,7 +180,7 @@ export default async function DashboardPage() {
               <span>Profit</span>
             </div>
             <div className="divide-y divide-border">
-              {metrics.apartmentPerformance.map((item) => (
+              {apartmentPerformance.map((item) => (
                 <Link
                   key={item.apartmentId}
                   href={`/apartments/${item.apartmentId}`}

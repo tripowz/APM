@@ -64,14 +64,18 @@ export default async function ReportsPage({ searchParams }: ReportsPageProps) {
   ]);
   const report: ReportMetrics = reportResult;
   const apartments: ApartmentRow[] = apartmentsResult;
+  const apartmentBreakdown: ReportMetrics["apartmentBreakdown"] =
+    report.apartmentBreakdown;
+  const reportBookings: ReportMetrics["bookings"] = report.bookings;
+  const reportExpensesRows: ReportMetrics["expensesRows"] = report.expensesRows;
 
   const currency = settings?.currency ?? "USD";
   const apartmentMap = new Map(
     apartments.map((apartment) => [apartment.id, apartment.title] as const)
   );
   const hasResults =
-    report.bookings.length > 0 ||
-    report.expensesRows.length > 0 ||
+    reportBookings.length > 0 ||
+    reportExpensesRows.length > 0 ||
     report.revenue > 0 ||
     report.expenses > 0;
 
@@ -189,7 +193,7 @@ export default async function ReportsPage({ searchParams }: ReportsPageProps) {
           title="Apartment breakdown"
           description="A straightforward apartment-by-apartment summary for the selected report window."
         >
-          {report.apartmentBreakdown.length === 0 ? (
+          {apartmentBreakdown.length === 0 ? (
             <EmptyState
               icon={BarChart3}
               title="No apartments available for reporting"
@@ -205,7 +209,7 @@ export default async function ReportsPage({ searchParams }: ReportsPageProps) {
                 <span>Profit</span>
               </div>
               <div className="divide-y divide-border">
-                {report.apartmentBreakdown.map((item) => (
+                {apartmentBreakdown.map((item) => (
                   <Link
                     key={item.apartmentId}
                     href={`/apartments/${item.apartmentId}`}
@@ -269,7 +273,7 @@ export default async function ReportsPage({ searchParams }: ReportsPageProps) {
           title="Bookings in report period"
           description="These bookings are grouped into the report by check-in date."
         >
-          {report.bookings.length === 0 ? (
+          {reportBookings.length === 0 ? (
             <EmptyState
               icon={BarChart3}
               title="No bookings in this report period"
@@ -277,7 +281,7 @@ export default async function ReportsPage({ searchParams }: ReportsPageProps) {
             />
           ) : (
             <div className="flex flex-col gap-3">
-              {report.bookings.map((booking) => (
+              {reportBookings.map((booking) => (
                 <Link
                   key={booking.id}
                   href={`/bookings/${booking.id}/edit?returnTo=/reports`}
@@ -316,7 +320,7 @@ export default async function ReportsPage({ searchParams }: ReportsPageProps) {
           title="Expenses in report period"
           description="Expenses are grouped by expense date and remain independent from booking status."
         >
-          {report.expensesRows.length === 0 ? (
+          {reportExpensesRows.length === 0 ? (
             <EmptyState
               icon={ReceiptText}
               title="No expenses in this report period"
@@ -324,7 +328,7 @@ export default async function ReportsPage({ searchParams }: ReportsPageProps) {
             />
           ) : (
             <div className="flex flex-col gap-3">
-              {report.expensesRows.map((expense) => (
+              {reportExpensesRows.map((expense) => (
                 <Link
                   key={expense.id}
                   href={`/expenses/${expense.id}/edit?returnTo=/reports`}

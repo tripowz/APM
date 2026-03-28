@@ -1,0 +1,79 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --background: 245 246 250;
+  --foreground: 17 24 39;
+  --card: 255 255 255;
+  --card-foreground: 17 24 39;
+  --popover: 255 255 255;
+  --popover-foreground: 17 24 39;
+  --primary: 17 24 39;
+  --primary-foreground: 255 255 255;
+  --secondary: 248 248 251;
+  --secondary-foreground: 17 24 39;
+  --muted: 248 248 251;
+  --muted-foreground: 107 114 128;
+  --accent: 248 248 251;
+  --accent-foreground: 17 24 39;
+  --destructive: 220 38 38;
+  --destructive-foreground: 255 255 255;
+  --border: 231 233 240;
+  --input: 231 233 240;
+  --ring: 17 24 39;
+  --surface: 255 255 255;
+  --surface-muted: 248 248 251;
+  --success: 22 163 74;
+  --warning: 245 158 11;
+  --danger: 220 38 38;
+  --info: 37 99 235;
+  --sidebar: 248 248 251;
+  --sidebar-foreground: 17 24 39;
+  --sidebar-accent: 255 255 255;
+  --sidebar-border: 231 233 240;
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  html {
+    @apply scroll-smooth;
+  }
+
+  body {
+    @apply bg-background font-sans text-foreground antialiased;
+    background-image:
+      radial-gradient(circle at top, rgba(255, 255, 255, 0.9), transparent 38%),
+      linear-gradient(180deg, rgba(245, 246, 250, 1) 0%, rgba(248, 249, 252, 1) 100%);
+    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+  }
+
+  a {
+    @apply text-inherit no-underline;
+  }
+
+  ::selection {
+    background: rgba(17, 24, 39, 0.12);
+  }
+}
+
+@layer components {
+  .surface-panel {
+    @apply rounded-2xl border border-border bg-surface shadow-card;
+  }
+
+  .surface-muted {
+    @apply rounded-2xl border border-border/70 bg-surface-muted;
+  }
+
+  .page-shell {
+    @apply min-h-screen bg-background;
+  }
+
+  .hairline {
+    @apply h-px w-full bg-border;
+  }
+}

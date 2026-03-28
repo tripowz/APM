@@ -16,6 +16,9 @@ import { Button } from "@/components/ui/button";
 import { getApartmentById, listApartments } from "@/lib/data/apartments";
 import { getBookingById } from "@/lib/data/bookings";
 import { formatShortDate } from "@/lib/dates";
+import type { Database } from "@/lib/supabase/database.types";
+
+type BookingRow = Database["public"]["Tables"]["bookings"]["Row"];
 
 type EditBookingPageProps = {
   params: Promise<{
@@ -36,7 +39,12 @@ export default async function EditBookingPage({
     getBookingById(id),
     listApartments({ status: "all" })
   ]);
-  const booking = bookingResult ?? notFound();
+
+  if (!bookingResult) {
+    notFound();
+  }
+
+  const booking: BookingRow = bookingResult;
 
   const apartment = await getApartmentById(booking.apartment_id);
   const returnTo =

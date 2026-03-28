@@ -8,6 +8,9 @@ import { SectionCard } from "@/components/shared/section-card";
 import { Button } from "@/components/ui/button";
 import { listApartments } from "@/lib/data/apartments";
 import { getExpenseById } from "@/lib/data/expenses";
+import type { Database } from "@/lib/supabase/database.types";
+
+type ExpenseRow = Database["public"]["Tables"]["expenses"]["Row"];
 
 type EditExpensePageProps = {
   params: Promise<{
@@ -28,7 +31,12 @@ export default async function EditExpensePage({
     getExpenseById(id),
     listApartments({ status: "all" })
   ]);
-  const expense = expenseResult ?? notFound();
+
+  if (!expenseResult) {
+    notFound();
+  }
+
+  const expense: ExpenseRow = expenseResult;
 
   const returnTo = resolvedSearchParams?.returnTo ?? "/expenses";
 

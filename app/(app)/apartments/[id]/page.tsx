@@ -13,6 +13,19 @@ import { getApartmentDetails } from "@/lib/data/apartments";
 import { getSettings } from "@/lib/data/settings";
 import { formatShortDate } from "@/lib/dates";
 import { formatCurrency } from "@/lib/formatters";
+import type { Database } from "@/lib/supabase/database.types";
+
+type ApartmentDetails = {
+  apartment: Database["public"]["Tables"]["apartments"]["Row"];
+  bookings: Database["public"]["Tables"]["bookings"]["Row"][];
+  expenses: Database["public"]["Tables"]["expenses"]["Row"][];
+  stats: {
+    bookingsCount: number;
+    revenue: number;
+    expenses: number;
+    profit: number;
+  };
+};
 
 type ApartmentDetailsPageProps = {
   params: Promise<{
@@ -28,7 +41,12 @@ export default async function ApartmentDetailsPage({
     getApartmentDetails(id),
     getSettings().catch(() => null)
   ]);
-  const details = detailsResult ?? notFound();
+
+  if (!detailsResult) {
+    notFound();
+  }
+
+  const details: ApartmentDetails = detailsResult;
 
   const currency = settings?.currency ?? "USD";
 

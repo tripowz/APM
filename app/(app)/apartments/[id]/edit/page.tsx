@@ -4,6 +4,9 @@ import { ApartmentForm } from "@/components/apartments/apartment-form";
 import { PageHeader } from "@/components/shared/page-header";
 import { SectionCard } from "@/components/shared/section-card";
 import { getApartmentById } from "@/lib/data/apartments";
+import type { Database } from "@/lib/supabase/database.types";
+
+type ApartmentRow = Database["public"]["Tables"]["apartments"]["Row"];
 
 type EditApartmentPageProps = {
   params: Promise<{
@@ -15,7 +18,13 @@ export default async function EditApartmentPage({
   params
 }: EditApartmentPageProps) {
   const { id } = await params;
-  const apartment = (await getApartmentById(id)) ?? notFound();
+  const apartmentResult = await getApartmentById(id);
+
+  if (!apartmentResult) {
+    notFound();
+  }
+
+  const apartment: ApartmentRow = apartmentResult;
 
   return (
     <div className="flex flex-col gap-6">

@@ -11,5 +11,4 @@ coverage
 .env.production
 .env.development.local
 .dev.vars
-.wrangler
-.open-next
+.vercel

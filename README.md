@@ -8,7 +8,7 @@ Internal dashboard MVP for one short-term rental business. This app is intention
 - TypeScript
 - Tailwind CSS
 - Supabase Auth + Postgres
-- Cloudflare Workers compatibility via OpenNext
+- Vercel deployment
 
 ## What is in the MVP
 
@@ -49,8 +49,6 @@ Optional:
 - `SEED_DEMO_PASSWORD`
   Overrides the temporary password used by the demo seed script.
 
-For Cloudflare local preview, also copy `.dev.vars.example` to `.dev.vars`.
-
 ## Local development
 
 1. Install dependencies:
@@ -77,12 +75,6 @@ npm run seed:demo
 npm run dev
 ```
 
-7. Optional: preview the Cloudflare worker runtime locally:
-
-```bash
-npm run preview
-```
-
 ## Supabase setup
 
 1. Create a new Supabase project.
@@ -91,9 +83,9 @@ npm run preview
 4. If you want in-app user creation or local seeding, also add the service role key to `.env.local`.
 5. Confirm Email/Password auth is enabled in Supabase Auth.
 
-## GitHub + Cloudflare deployment
+## GitHub + Vercel deployment
 
-This repository is prepared for Cloudflare Workers deployment through OpenNext.
+This repository is prepared for standard Vercel deployment as a Next.js app.
 
 ### One-time project setup
 
@@ -103,43 +95,15 @@ This repository is prepared for Cloudflare Workers deployment through OpenNext.
 ```bash
 npm install
 ```
-
-3. Verify the worker config files exist:
-   - [wrangler.jsonc](./wrangler.jsonc)
-   - [open-next.config.ts](./open-next.config.ts)
-   - [public/_headers](./public/_headers)
-
-4. Add production environment variables in Cloudflare:
+3. In Vercel, import the GitHub repository.
+4. Add production environment variables in Vercel:
    - `NEXT_PUBLIC_SUPABASE_URL`
    - `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`
    - `SUPABASE_SERVICE_ROLE_KEY` only if you want in-app user creation in production
-
-5. If you use Workers Builds with GitHub, set:
-   - Build command: `npx @opennextjs/cloudflare build`
-   - Deploy command: `npx @opennextjs/cloudflare upload`
-
-### Deploy using Cloudflare Workers
-
-1. Authenticate Wrangler:
-
-```bash
-npx wrangler login
-```
-
-2. Deploy:
-
-```bash
-npm run deploy
-```
-
-### Deploy using GitHub integration
-
-1. In Cloudflare, open Workers & Pages.
-2. Create an application by importing the GitHub repository.
-3. Connect the repository to the Worker.
-4. Set the production branch.
-5. Add the required environment variables in Cloudflare.
-6. Let Cloudflare build and deploy on pushes to your chosen branch.
+5. Keep the default Vercel Next.js build command:
+   - Build command: `npm run build`
+   - Output setting: framework default for Next.js
+6. Deploy from the `main` branch or your chosen production branch.
 
 ## Realtime notes
 

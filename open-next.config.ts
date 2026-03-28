@@ -1,3 +1,2 @@
-import { defineCloudflareConfig } from "@opennextjs/cloudflare";
-
-export default defineCloudflareConfig({});
+// Legacy placeholder. This project now targets Vercel deployments.
+export {};

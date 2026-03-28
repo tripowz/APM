@@ -8,10 +8,13 @@ import {
   createApartment,
   updateApartment
 } from "@/lib/data/apartments";
+import type { Database } from "@/lib/supabase/database.types";
 import type {
   ApartmentInput,
   ApartmentUpdateInput
 } from "@/lib/validations/apartment";
+
+type ApartmentRow = Database["public"]["Tables"]["apartments"]["Row"];
 
 export type ApartmentFormState = {
   error?: string;
@@ -56,9 +59,16 @@ export async function saveApartmentAction(
       notes: parsed.data.notes?.trim() ? parsed.data.notes.trim() : null
     };
 
-    const apartment = parsed.data.apartmentId
-      ? await updateApartment(parsed.data.apartmentId, apartmentPayload as ApartmentUpdateInput)
-      : await createApartment(apartmentPayload);
+    let apartment: ApartmentRow;
+
+    if (parsed.data.apartmentId) {
+      apartment = await updateApartment(
+        parsed.data.apartmentId,
+        apartmentPayload as ApartmentUpdateInput
+      );
+    } else {
+      apartment = await createApartment(apartmentPayload);
+    }
 
     revalidatePath("/apartments");
     revalidatePath(`/apartments/${apartment.id}`);

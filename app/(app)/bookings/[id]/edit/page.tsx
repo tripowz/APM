@@ -19,6 +19,7 @@ import { formatShortDate } from "@/lib/dates";
 import type { Database } from "@/lib/supabase/database.types";
 
 type BookingRow = Database["public"]["Tables"]["bookings"]["Row"];
+type ApartmentRow = Database["public"]["Tables"]["apartments"]["Row"];
 
 type EditBookingPageProps = {
   params: Promise<{
@@ -35,7 +36,7 @@ export default async function EditBookingPage({
 }: EditBookingPageProps) {
   const { id } = await params;
   const resolvedSearchParams = await searchParams;
-  const [bookingResult, apartments] = await Promise.all([
+  const [bookingResult, apartmentsResult] = await Promise.all([
     getBookingById(id),
     listApartments({ status: "all" })
   ]);
@@ -45,6 +46,7 @@ export default async function EditBookingPage({
   }
 
   const booking: BookingRow = bookingResult;
+  const apartments: ApartmentRow[] = apartmentsResult;
 
   const apartmentTitle =
     apartments.find((apartment) => apartment.id === booking.apartment_id)?.title ??

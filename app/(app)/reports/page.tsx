@@ -14,7 +14,10 @@ import { StatusBadge } from "@/components/shared/status-badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
-import { getReportMetrics } from "@/lib/business/metrics";
+import {
+  getReportMetrics,
+  type ReportMetrics
+} from "@/lib/business/metrics";
 import { listApartments } from "@/lib/data/apartments";
 import { getSettings, type SettingsRow } from "@/lib/data/settings";
 import { getMonthStart, formatShortDate, toIsoDate } from "@/lib/dates";
@@ -49,7 +52,7 @@ export default async function ReportsPage({ searchParams }: ReportsPageProps) {
     bookingStatus: params?.bookingStatus ?? "all"
   } as const;
 
-  const [report, apartmentsResult, settings] = await Promise.all([
+  const [reportResult, apartmentsResult, settings] = await Promise.all([
     getReportMetrics({
       from: filters.from,
       to: filters.to,
@@ -59,6 +62,7 @@ export default async function ReportsPage({ searchParams }: ReportsPageProps) {
     listApartments({ status: "all" }),
     getSettings().catch((): SettingsRow | null => null)
   ]);
+  const report: ReportMetrics = reportResult;
   const apartments: ApartmentRow[] = apartmentsResult;
 
   const currency = settings?.currency ?? "USD";

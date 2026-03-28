@@ -18,7 +18,10 @@ import { PageHeader } from "@/components/shared/page-header";
 import { SectionCard } from "@/components/shared/section-card";
 import { StatCard } from "@/components/shared/stat-card";
 import { Button } from "@/components/ui/button";
-import { getDashboardMetrics } from "@/lib/business/metrics";
+import {
+  getDashboardMetrics,
+  type DashboardMetrics
+} from "@/lib/business/metrics";
 import { listApartments } from "@/lib/data/apartments";
 import { getSettings, type SettingsRow } from "@/lib/data/settings";
 import { formatCurrency } from "@/lib/formatters";
@@ -27,11 +30,12 @@ import type { Database } from "@/lib/supabase/database.types";
 type ApartmentRow = Database["public"]["Tables"]["apartments"]["Row"];
 
 export default async function DashboardPage() {
-  const [metrics, apartmentsResult, settings] = await Promise.all([
+  const [metricsResult, apartmentsResult, settings] = await Promise.all([
     getDashboardMetrics(),
     listApartments({ status: "all" }),
     getSettings().catch((): SettingsRow | null => null)
   ]);
+  const metrics: DashboardMetrics = metricsResult;
   const apartments: ApartmentRow[] = apartmentsResult;
 
   const currency = settings?.currency ?? "USD";

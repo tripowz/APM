@@ -13,6 +13,10 @@ import {
   parseIsoDate,
   toIsoDate
 } from "@/lib/dates";
+import type { Database } from "@/lib/supabase/database.types";
+
+type BookingRow = Database["public"]["Tables"]["bookings"]["Row"];
+type ExpenseRow = Database["public"]["Tables"]["expenses"]["Row"];
 
 type BookingStatus =
   | "new"
@@ -26,6 +30,58 @@ type ReportFilters = {
   to?: string;
   apartmentId?: string;
   bookingStatus?: BookingStatus | "all";
+};
+
+export type DashboardMetrics = {
+  occupiedToday: number;
+  freeToday: number;
+  upcomingCheckIns: number;
+  upcomingCheckOuts: number;
+  monthlyRevenue: number;
+  monthlyExpenses: number;
+  monthlyProfit: number;
+  recentBookings: BookingRow[];
+  apartmentPerformance: Array<{
+    apartmentId: string;
+    apartmentTitle: string;
+    bookingsCount: number;
+    revenue: number;
+    expenses: number;
+    profit: number;
+  }>;
+  revenueTrend: Array<{
+    label: string;
+    total: number;
+  }>;
+};
+
+export type ReportMetrics = {
+  filters: {
+    from: string;
+    to: string;
+    apartmentId?: string;
+    bookingStatus: BookingStatus | "all";
+  };
+  revenue: number;
+  expenses: number;
+  profit: number;
+  bookingsCount: number;
+  averageBookingValue: number;
+  occupancySnapshot: {
+    occupiedApartmentDays: number;
+    availableApartmentDays: number;
+    occupancyRate: number;
+  };
+  apartmentBreakdown: Array<{
+    apartmentId: string;
+    apartmentTitle: string;
+    bookingsCount: number;
+    revenue: number;
+    expenses: number;
+    profit: number;
+  }>;
+  bookings: BookingRow[];
+  expensesRows: ExpenseRow[];
 };
 
 function startOfTodayIso() {
@@ -64,7 +120,7 @@ function normalizeReportFilters(filters: ReportFilters = {}) {
   };
 }
 
-export async function getDashboardMetrics() {
+export async function getDashboardMetrics(): Promise<DashboardMetrics> {
   const today = startOfTodayIso();
   const sevenDaysAhead = addDays(today, 7);
   const monthStart = getMonthStart();
@@ -191,7 +247,9 @@ export async function getDashboardMetrics() {
   };
 }
 
-export async function getReportMetrics(filters: ReportFilters = {}) {
+export async function getReportMetrics(
+  filters: ReportFilters = {}
+): Promise<ReportMetrics> {
   const normalized = normalizeReportFilters(filters);
   const toExclusive = addDays(normalized.to, 1);
 

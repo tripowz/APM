@@ -13,6 +13,11 @@ export type ServerSupabaseClient = ReturnType<typeof createTypedServerClient>;
 
 export async function createClient(): Promise<ServerSupabaseClient> {
   const cookieStore = await cookies();
+  type CookieToSet = {
+    name: string;
+    value: string;
+    options?: Parameters<typeof cookieStore.set>[2];
+  };
 
   return createTypedServerClient(
     getSupabaseUrl(),
@@ -22,9 +27,9 @@ export async function createClient(): Promise<ServerSupabaseClient> {
         getAll() {
           return cookieStore.getAll();
         },
-        setAll(cookiesToSet) {
+        setAll(cookiesToSet: CookieToSet[]) {
           try {
-            cookiesToSet.forEach(({ name, value, options }) => {
+            cookiesToSet.forEach(({ name, value, options }: CookieToSet) => {
               cookieStore.set(name, value, options);
             });
           } catch {

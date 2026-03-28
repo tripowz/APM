@@ -26,6 +26,11 @@ export async function updateSession(request: NextRequest) {
   let response = NextResponse.next({
     request
   });
+  type ResponseCookieToSet = {
+    name: string;
+    value: string;
+    options?: Parameters<typeof response.cookies.set>[2];
+  };
 
   const supabase = createServerClient<Database>(
     getSupabaseUrl(),
@@ -35,14 +40,16 @@ export async function updateSession(request: NextRequest) {
         getAll() {
           return request.cookies.getAll();
         },
-        setAll(cookiesToSet) {
-          cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value));
+        setAll(cookiesToSet: ResponseCookieToSet[]) {
+          cookiesToSet.forEach(({ name, value }: ResponseCookieToSet) =>
+            request.cookies.set(name, value)
+          );
 
           response = NextResponse.next({
             request
           });
 
-          cookiesToSet.forEach(({ name, value, options }) =>
+          cookiesToSet.forEach(({ name, value, options }: ResponseCookieToSet) =>
             response.cookies.set(name, value, options)
           );
         }

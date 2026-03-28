@@ -7,20 +7,22 @@ import { StatusBadge } from "@/components/shared/status-badge";
 import { BusinessSettingsForm } from "@/components/settings/business-settings-form";
 import { InviteUserForm } from "@/components/settings/invite-user-form";
 import { UserRoleForm } from "@/components/settings/user-role-form";
-import { requireAuthenticatedUser } from "@/lib/auth/session";
+import {
+  requireAuthenticatedUser,
+  type CurrentAppUser
+} from "@/lib/auth/session";
 import { getSettings, type SettingsRow } from "@/lib/data/settings";
-import { listUsers } from "@/lib/data/users";
+import { listUsers, type UserRow } from "@/lib/data/users";
 import { hasServiceRoleKey } from "@/lib/supabase/env";
 
-type UserRow = Awaited<ReturnType<typeof listUsers>>[number];
-
 export default async function SettingsPage() {
-  const currentUser = await requireAuthenticatedUser();
+  const currentUser: CurrentAppUser = await requireAuthenticatedUser();
   const [settings, usersResult] = await Promise.all([
     getSettings().catch((): SettingsRow | null => null),
     listUsers()
   ]);
   const users: UserRow[] = usersResult;
+  const currentUserId = currentUser.id;
   const canManageUsers = currentUser.role === "owner";
   const inAppInvitesEnabled = hasServiceRoleKey();
 
@@ -79,7 +81,7 @@ export default async function SettingsPage() {
       >
         <div className="grid gap-4">
           {users.map((user) => {
-            const isCurrentUser = user.id === currentUser.id;
+            const isCurrentUser = user.id === currentUserId;
 
             return (
               <div

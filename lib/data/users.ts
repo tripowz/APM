@@ -2,13 +2,16 @@ import "server-only";
 
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
+import type { Database } from "@/lib/supabase/database.types";
 import {
   userInviteSchema,
   userProfileUpdateSchema,
   type UserInviteInput
 } from "@/lib/validations/user";
 
-export async function listUsers() {
+export type UserRow = Database["public"]["Tables"]["users"]["Row"];
+
+export async function listUsers(): Promise<UserRow[]> {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("users")
@@ -28,7 +31,7 @@ export async function listUsers() {
   });
 }
 
-export async function getUserById(id: string) {
+export async function getUserById(id: string): Promise<UserRow | null> {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("users")
@@ -49,7 +52,7 @@ export async function updateUserProfile(
     full_name: string;
     role: "owner" | "member";
   }>
-) {
+): Promise<UserRow> {
   const payload = userProfileUpdateSchema.parse(input);
   const supabase = await createClient();
   const { data, error } = await supabase

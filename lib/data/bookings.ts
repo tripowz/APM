@@ -135,8 +135,9 @@ async function assertBookingConflictFree(
 }
 
 export async function createBooking(input: BookingInput): Promise<BookingRow> {
-  const payload: BookingInsert = bookingSchema.parse(input);
-  await assertBookingConflictFree(payload);
+  const validatedInput: BookingInput = bookingSchema.parse(input);
+  const payload: BookingInsert = validatedInput;
+  await assertBookingConflictFree(validatedInput);
   const supabase = await createClient();
   const { data: bookingResult, error } = await supabase
     .from("bookings")
@@ -161,12 +162,13 @@ export async function updateBooking(
     throw new Error("Booking not found.");
   }
 
-  const payload: BookingUpdate = bookingSchema.parse({
+  const validatedInput: BookingInput = bookingSchema.parse({
     ...existingBooking,
     ...input
   });
+  const payload: BookingUpdate = validatedInput;
 
-  await assertBookingConflictFree(payload as BookingInput, id);
+  await assertBookingConflictFree(validatedInput, id);
   const supabase = await createClient();
   const { data: bookingResult, error } = await supabase
     .from("bookings")

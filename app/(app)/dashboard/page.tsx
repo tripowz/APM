@@ -20,14 +20,14 @@ import { StatCard } from "@/components/shared/stat-card";
 import { Button } from "@/components/ui/button";
 import { getDashboardMetrics } from "@/lib/business/metrics";
 import { listApartments } from "@/lib/data/apartments";
-import { getSettings } from "@/lib/data/settings";
+import { getSettings, type SettingsRow } from "@/lib/data/settings";
 import { formatCurrency } from "@/lib/formatters";
 
 export default async function DashboardPage() {
   const [metrics, apartments, settings] = await Promise.all([
     getDashboardMetrics(),
     listApartments({ status: "all" }),
-    getSettings().catch(() => null)
+    getSettings().catch((): SettingsRow | null => null)
   ]);
 
   const currency = settings?.currency ?? "USD";

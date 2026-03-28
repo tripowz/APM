@@ -1,10 +1,13 @@
 import "server-only";
 
 import { createClient } from "@/lib/supabase/server";
+import type { Database } from "@/lib/supabase/database.types";
 import {
   settingsSchema,
   type SettingsInput
 } from "@/lib/validations/settings";
+
+export type SettingsRow = Database["public"]["Tables"]["settings"]["Row"];
 
 export async function getSettings() {
   const supabase = await createClient();

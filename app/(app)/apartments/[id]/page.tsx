@@ -10,7 +10,7 @@ import { SectionCard } from "@/components/shared/section-card";
 import { StatusBadge } from "@/components/shared/status-badge";
 import { Button } from "@/components/ui/button";
 import { getApartmentDetails } from "@/lib/data/apartments";
-import { getSettings } from "@/lib/data/settings";
+import { getSettings, type SettingsRow } from "@/lib/data/settings";
 import { formatShortDate } from "@/lib/dates";
 import { formatCurrency } from "@/lib/formatters";
 import type { Database } from "@/lib/supabase/database.types";
@@ -39,7 +39,7 @@ export default async function ApartmentDetailsPage({
   const { id } = await params;
   const [detailsResult, settings] = await Promise.all([
     getApartmentDetails(id),
-    getSettings().catch(() => null)
+    getSettings().catch((): SettingsRow | null => null)
   ]);
 
   if (!detailsResult) {

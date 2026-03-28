@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { listApartmentSummaries } from "@/lib/data/apartments";
-import { getSettings } from "@/lib/data/settings";
+import { getSettings, type SettingsRow } from "@/lib/data/settings";
 import { formatCompactNumber, formatCurrency } from "@/lib/formatters";
 
 type ApartmentsPageProps = {
@@ -29,7 +29,7 @@ export default async function ApartmentsPage({
       query,
       status
     }),
-    getSettings().catch(() => null)
+    getSettings().catch((): SettingsRow | null => null)
   ]);
 
   const currency = settings?.currency ?? "USD";

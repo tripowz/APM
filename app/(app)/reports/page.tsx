@@ -16,7 +16,7 @@ import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { getReportMetrics } from "@/lib/business/metrics";
 import { listApartments } from "@/lib/data/apartments";
-import { getSettings } from "@/lib/data/settings";
+import { getSettings, type SettingsRow } from "@/lib/data/settings";
 import { getMonthStart, formatShortDate, toIsoDate } from "@/lib/dates";
 import { formatCurrency } from "@/lib/formatters";
 
@@ -54,7 +54,7 @@ export default async function ReportsPage({ searchParams }: ReportsPageProps) {
       bookingStatus: filters.bookingStatus
     }),
     listApartments({ status: "all" }),
-    getSettings().catch(() => null)
+    getSettings().catch((): SettingsRow | null => null)
   ]);
 
   const currency = settings?.currency ?? "USD";

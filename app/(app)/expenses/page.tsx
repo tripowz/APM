@@ -10,7 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { listApartments } from "@/lib/data/apartments";
 import { listExpenses } from "@/lib/data/expenses";
-import { getSettings } from "@/lib/data/settings";
+import { getSettings, type SettingsRow } from "@/lib/data/settings";
 import { getMonthStart, toIsoDate } from "@/lib/dates";
 import { formatCurrency } from "@/lib/formatters";
 
@@ -45,7 +45,7 @@ export default async function ExpensesPage({ searchParams }: ExpensesPageProps) 
   const [apartments, expenses, settings] = await Promise.all([
     listApartments({ status: "all" }),
     listExpenses(filters),
-    getSettings().catch(() => null)
+    getSettings().catch((): SettingsRow | null => null)
   ]);
 
   const currency = settings?.currency ?? "USD";

@@ -8,14 +8,14 @@ import { BusinessSettingsForm } from "@/components/settings/business-settings-fo
 import { InviteUserForm } from "@/components/settings/invite-user-form";
 import { UserRoleForm } from "@/components/settings/user-role-form";
 import { requireAuthenticatedUser } from "@/lib/auth/session";
-import { getSettings } from "@/lib/data/settings";
+import { getSettings, type SettingsRow } from "@/lib/data/settings";
 import { listUsers } from "@/lib/data/users";
 import { hasServiceRoleKey } from "@/lib/supabase/env";
 
 export default async function SettingsPage() {
   const currentUser = await requireAuthenticatedUser();
   const [settings, users] = await Promise.all([
-    getSettings().catch(() => null),
+    getSettings().catch((): SettingsRow | null => null),
     listUsers()
   ]);
   const canManageUsers = currentUser.role === "owner";

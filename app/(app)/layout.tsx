@@ -2,7 +2,7 @@ import { AppSidebar } from "@/components/app-shell/app-sidebar";
 import { AppTopbar } from "@/components/app-shell/app-topbar";
 import { PageContainer } from "@/components/shared/page-container";
 import { requireAuthenticatedUser } from "@/lib/auth/session";
-import { getSettings } from "@/lib/data/settings";
+import { getSettings, type SettingsRow } from "@/lib/data/settings";
 
 type AppLayoutProps = Readonly<{
   children: React.ReactNode;
@@ -10,7 +10,9 @@ type AppLayoutProps = Readonly<{
 
 export default async function AppLayout({ children }: AppLayoutProps) {
   const currentUser = await requireAuthenticatedUser();
-  const settings = await getSettings().catch(() => null);
+  const settings: SettingsRow | null = await getSettings().catch(
+    (): SettingsRow | null => null
+  );
 
   return (
     <div className="page-shell">

@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { isRedirectError } from "next/dist/client/components/redirect-error";
 import { z } from "zod";
 
 import { BookingConflictError } from "@/lib/bookings/conflicts";
@@ -142,6 +143,10 @@ export async function saveBookingAction(
         : `/bookings/${booking.id}/edit`
     );
   } catch (error) {
+    if (isRedirectError(error)) {
+      throw error;
+    }
+
     if (error instanceof BookingConflictError) {
       return {
         error: formatBookingConflictMessage(locale, error)

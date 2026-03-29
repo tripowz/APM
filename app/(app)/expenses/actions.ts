@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { isRedirectError } from "next/dist/client/components/redirect-error";
 import { z } from "zod";
 
 import {
@@ -113,6 +114,10 @@ export async function saveExpenseAction(
     revalidateExpenseRoutes(expense.apartment_id, expense.id);
     redirect(getSafeReturnPath(metaParsed.data.returnTo));
   } catch (error) {
+    if (isRedirectError(error)) {
+      throw error;
+    }
+
     return {
       error:
         error instanceof Error

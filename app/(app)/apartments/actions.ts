@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { isRedirectError } from "next/dist/client/components/redirect-error";
 import { z } from "zod";
 
 import {
@@ -87,6 +88,10 @@ export async function saveApartmentAction(
 
     redirect(`/apartments/${apartment.id}`);
   } catch (error) {
+    if (isRedirectError(error)) {
+      throw error;
+    }
+
     return {
       error:
         error instanceof Error

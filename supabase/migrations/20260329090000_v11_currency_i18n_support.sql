@@ -9,6 +9,30 @@ begin
   end if;
 end $$;
 
+do $$
+begin
+  if exists (
+    select 1
+    from information_schema.tables
+    where table_schema = 'public'
+      and table_name = 'users'
+  ) and exists (
+    select 1
+    from pg_type
+    where typname = 'app_role'
+  ) then
+    create or replace function public.current_user_role()
+    returns public.app_role
+    language sql
+    stable
+    security definer
+    set search_path = public
+    as $fn$
+      select role from public.users where id = auth.uid();
+    $fn$;
+  end if;
+end $$;
+
 alter table public.bookings
   add column if not exists currency public.currency_code not null default 'USD',
   add column if not exists total_amount_original numeric(12,2) not null default 0,
@@ -100,4 +124,3 @@ begin
     alter publication supabase_realtime add table public.exchange_rates;
   end if;
 end $$;
-

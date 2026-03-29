@@ -4,6 +4,7 @@ import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 
 import { createClient } from "@/lib/supabase/client";
+import { hasSupabasePublicEnv } from "@/lib/supabase/env";
 
 type RealtimeTable =
   | "apartments"
@@ -25,6 +26,10 @@ export function RealtimeRefresh({
   const tablesKey = tables.join(",");
 
   useEffect(() => {
+    if (!hasSupabasePublicEnv()) {
+      return;
+    }
+
     const supabase = createClient();
     const tableList = tablesKey.split(",") as RealtimeTable[];
     let refreshTimeout: ReturnType<typeof setTimeout> | null = null;

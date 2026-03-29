@@ -17,10 +17,11 @@ function getPublicSupabaseEnvErrorMessage() {
 }
 
 export function getSupabasePublicEnv(): PublicSupabaseEnv | null {
-  const url = readEnv("NEXT_PUBLIC_SUPABASE_URL");
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL?.trim() ?? null;
   const publishableKey =
-    readEnv("NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY") ??
-    readEnv("NEXT_PUBLIC_SUPABASE_ANON_KEY");
+    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY?.trim() ??
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY?.trim() ??
+    null;
 
   if (!url || !publishableKey) {
     return null;
@@ -57,6 +58,10 @@ export function getSupabasePublishableKey() {
 }
 
 export function getServiceRoleKey() {
+  if (typeof window !== "undefined") {
+    return null;
+  }
+
   return readEnv("SUPABASE_SERVICE_ROLE_KEY");
 }
 

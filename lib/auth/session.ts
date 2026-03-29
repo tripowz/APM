@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 
 import { createClient } from "@/lib/supabase/server";
 import type { Database } from "@/lib/supabase/database.types";
+import { hasSupabasePublicEnv } from "@/lib/supabase/env";
 import type { CurrentAppUser } from "@/lib/types/app";
 
 type UserProfileRow = Pick<
@@ -11,6 +12,10 @@ type UserProfileRow = Pick<
 >;
 
 export const getCurrentAppUser = cache(async (): Promise<CurrentAppUser | null> => {
+  if (!hasSupabasePublicEnv()) {
+    return null;
+  }
+
   const supabase = await createClient();
   const { data: claimsData, error: claimsError } = await supabase.auth.getClaims();
 

@@ -1,46 +1,76 @@
-type RequiredEnvKey = "NEXT_PUBLIC_SUPABASE_URL";
+type PublicSupabaseEnv = {
+  url: string;
+  publishableKey: string;
+};
 
-function requireEnv(key: RequiredEnvKey) {
-  const value = process.env[key];
-
-  if (!value) {
-    throw new Error(`Missing environment variable: ${key}`);
-  }
-
-  return value;
+function readEnv(key: string) {
+  const value = process.env[key]?.trim();
+  return value ? value : null;
 }
 
-function requireSupabasePublicKey() {
-  const value =
-    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ??
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+function getPublicSupabaseEnvErrorMessage() {
+  return [
+    "Supabase public environment variables are missing.",
+    "Add NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY to .env.local for local development or to the Vercel project settings for production.",
+    "NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY is also supported as a compatibility alias."
+  ].join(" ");
+}
 
-  if (!value) {
-    throw new Error(
-      "Missing environment variable: NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY or NEXT_PUBLIC_SUPABASE_ANON_KEY"
-    );
+export function getSupabasePublicEnv(): PublicSupabaseEnv | null {
+  const url = readEnv("NEXT_PUBLIC_SUPABASE_URL");
+  const publishableKey =
+    readEnv("NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY") ??
+    readEnv("NEXT_PUBLIC_SUPABASE_ANON_KEY");
+
+  if (!url || !publishableKey) {
+    return null;
   }
 
-  return value;
+  return {
+    url,
+    publishableKey
+  };
+}
+
+export function hasSupabasePublicEnv() {
+  return getSupabasePublicEnv() !== null;
 }
 
 export function getSupabaseUrl() {
-  return requireEnv("NEXT_PUBLIC_SUPABASE_URL");
+  const publicEnv = getSupabasePublicEnv();
+
+  if (!publicEnv) {
+    throw new Error(getPublicSupabaseEnvErrorMessage());
+  }
+
+  return publicEnv.url;
 }
 
 export function getSupabasePublishableKey() {
-  return requireSupabasePublicKey();
+  const publicEnv = getSupabasePublicEnv();
+
+  if (!publicEnv) {
+    throw new Error(getPublicSupabaseEnvErrorMessage());
+  }
+
+  return publicEnv.publishableKey;
+}
+
+export function getServiceRoleKey() {
+  return readEnv("SUPABASE_SERVICE_ROLE_KEY");
 }
 
 export function hasServiceRoleKey() {
-  return Boolean(process.env.SUPABASE_SERVICE_ROLE_KEY);
+  return getServiceRoleKey() !== null;
 }
 
 export function requireServiceRoleKey() {
-  const value = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  const value = getServiceRoleKey();
 
   if (!value) {
-    throw new Error("Missing environment variable: SUPABASE_SERVICE_ROLE_KEY");
+    throw new Error(
+      "Missing environment variable: SUPABASE_SERVICE_ROLE_KEY. This key is only required for server-only admin actions such as in-app user creation and demo seeding."
+    );
   }
 
   return value;

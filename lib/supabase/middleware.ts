@@ -3,8 +3,7 @@ import { NextResponse, type NextRequest } from "next/server";
 
 import type { Database } from "@/lib/supabase/database.types";
 import {
-  getSupabasePublishableKey,
-  getSupabaseUrl
+  getSupabasePublicEnv
 } from "@/lib/supabase/env";
 
 const protectedRoutes = [
@@ -23,6 +22,23 @@ function matchesRoute(pathname: string, routes: string[]) {
 }
 
 export async function updateSession(request: NextRequest) {
+  const publicEnv = getSupabasePublicEnv();
+  const isProtectedRoute = matchesRoute(request.nextUrl.pathname, protectedRoutes);
+  const isLoginRoute = request.nextUrl.pathname === "/login";
+
+  if (!publicEnv) {
+    if (isProtectedRoute) {
+      const redirectUrl = request.nextUrl.clone();
+      redirectUrl.pathname = "/login";
+      redirectUrl.searchParams.set("next", request.nextUrl.pathname);
+      return NextResponse.redirect(redirectUrl);
+    }
+
+    return NextResponse.next({
+      request
+    });
+  }
+
   let response = NextResponse.next({
     request
   });
@@ -33,8 +49,8 @@ export async function updateSession(request: NextRequest) {
   };
 
   const supabase = createServerClient<Database>(
-    getSupabaseUrl(),
-    getSupabasePublishableKey(),
+    publicEnv.url,
+    publicEnv.publishableKey,
     {
       cookies: {
         getAll() {
@@ -61,8 +77,6 @@ export async function updateSession(request: NextRequest) {
   const claims = claimsData?.claims;
 
   const isAuthenticated = !claimsError && Boolean(claims?.sub);
-  const isProtectedRoute = matchesRoute(request.nextUrl.pathname, protectedRoutes);
-  const isLoginRoute = request.nextUrl.pathname === "/login";
 
   if (!isAuthenticated && isProtectedRoute) {
     const redirectUrl = request.nextUrl.clone();

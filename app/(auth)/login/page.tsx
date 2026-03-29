@@ -2,6 +2,7 @@ import { Building2, ShieldCheck } from "lucide-react";
 
 import { redirectIfAuthenticated } from "@/lib/auth/session";
 import { LoginForm } from "@/components/auth/login-form";
+import { hasSupabasePublicEnv } from "@/lib/supabase/env";
 
 type LoginPageProps = {
   searchParams?: Promise<{
@@ -13,6 +14,7 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
   await redirectIfAuthenticated();
 
   const resolvedSearchParams = await searchParams;
+  const isSupabaseConfigured = hasSupabasePublicEnv();
 
   return (
     <div className="surface-panel flex flex-col gap-8 px-6 py-7 sm:px-7 sm:py-8">
@@ -40,6 +42,15 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
           </p>
         </div>
       </div>
+
+      {!isSupabaseConfigured ? (
+        <div className="rounded-2xl border border-warning/20 bg-warning/5 px-4 py-3 text-sm text-warning">
+          Supabase auth is not configured for this environment yet. Add{" "}
+          <code>NEXT_PUBLIC_SUPABASE_URL</code> and{" "}
+          <code>NEXT_PUBLIC_SUPABASE_ANON_KEY</code> in <code>.env.local</code>{" "}
+          for local development or in Vercel project settings.
+        </div>
+      ) : null}
 
       <LoginForm nextPath={resolvedSearchParams?.next} />
 

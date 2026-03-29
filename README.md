@@ -39,15 +39,23 @@ Copy `.env.example` to `.env.local` for local development.
 Required:
 
 - `NEXT_PUBLIC_SUPABASE_URL`
+- `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+
+Compatibility:
+
 - `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`
+  The codebase accepts this as an alternative to `NEXT_PUBLIC_SUPABASE_ANON_KEY`.
+  You only need one of them, not both.
 
 Optional:
 
 - `SUPABASE_SERVICE_ROLE_KEY`
-  Use this for `npm run seed:demo` and for in-app user creation from the Settings page.
-  Keep it server-only and never expose it in client-side code.
+  Use this only for `npm run seed:demo` and for in-app user creation from the Settings page.
+  It is server-only and must never be exposed in client-side code or committed to git.
 - `SEED_DEMO_PASSWORD`
   Overrides the temporary password used by the demo seed script.
+
+Do not commit `.env.local`, `.env.production`, or any file containing real keys.
 
 ## Local development
 
@@ -79,9 +87,10 @@ npm run dev
 
 1. Create a new Supabase project.
 2. In Supabase SQL Editor, run the files in [supabase/migrations](./supabase/migrations) in order.
-3. Copy the project URL and publishable key into `.env.local`.
-4. If you want in-app user creation or local seeding, also add the service role key to `.env.local`.
-5. Confirm Email/Password auth is enabled in Supabase Auth.
+3. Copy the project URL and anon key into `.env.local`.
+4. If you prefer the newer key naming, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` also works.
+5. If you want in-app user creation or local seeding, also add the service role key to `.env.local`.
+6. Confirm Email/Password auth is enabled in Supabase Auth.
 
 ## GitHub + Vercel deployment
 
@@ -98,12 +107,19 @@ npm install
 3. In Vercel, import the GitHub repository.
 4. Add production environment variables in Vercel:
    - `NEXT_PUBLIC_SUPABASE_URL`
-   - `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`
+   - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
    - `SUPABASE_SERVICE_ROLE_KEY` only if you want in-app user creation in production
 5. Keep the default Vercel Next.js build command:
    - Build command: `npm run build`
    - Output setting: framework default for Next.js
 6. Deploy from the `main` branch or your chosen production branch.
+
+### Recommended Vercel env strategy
+
+- Set `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY` in all environments where the app should authenticate users.
+- Only set `SUPABASE_SERVICE_ROLE_KEY` in Vercel if you need the owner-only "Add user" flow inside Settings.
+- The app does not require `SUPABASE_SERVICE_ROLE_KEY` for normal sign-in, route protection, CRUD pages, dashboard metrics, or reports.
+- If public Supabase env vars are missing, the app now avoids import-time crashes and redirects protected routes to `/login` instead of crashing middleware.
 
 ## Realtime notes
 

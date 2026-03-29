@@ -15,11 +15,16 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import {
+  createEmptyReportMetrics,
   getReportMetrics,
   type ReportMetrics
 } from "@/lib/business/metrics";
 import { listApartments } from "@/lib/data/apartments";
-import { getSettings, type SettingsRow } from "@/lib/data/settings";
+import {
+  DEFAULT_SETTINGS,
+  getSettings,
+  type SettingsRow
+} from "@/lib/data/settings";
 import { getMonthStart, formatShortDate, toIsoDate } from "@/lib/dates";
 import { formatCurrency } from "@/lib/formatters";
 import type { Database } from "@/lib/supabase/database.types";
@@ -61,8 +66,15 @@ export default async function ReportsPage({ searchParams }: ReportsPageProps) {
       to: filters.to,
       apartmentId: filters.apartmentId || undefined,
       bookingStatus: filters.bookingStatus
-    }),
-    listApartments({ status: "all" }),
+    }).catch((): ReportMetrics =>
+      createEmptyReportMetrics({
+        from: filters.from,
+        to: filters.to,
+        apartmentId: filters.apartmentId || undefined,
+        bookingStatus: filters.bookingStatus
+      })
+    ),
+    listApartments({ status: "all" }).catch((): ApartmentRow[] => []),
     getSettings().catch((): SettingsRow | null => null)
   ]);
   const report: ReportMetrics = reportResult;
@@ -72,7 +84,7 @@ export default async function ReportsPage({ searchParams }: ReportsPageProps) {
   const reportBookings: ReportMetrics["bookings"] = report.bookings;
   const reportExpensesRows: ReportMetrics["expensesRows"] = report.expensesRows;
 
-  const currency = settings?.currency ?? "USD";
+  const currency = settings?.currency ?? DEFAULT_SETTINGS.currency;
   const apartmentMap = new Map(
     apartments.map((apartment: ApartmentRow) => [apartment.id, apartment.title] as const)
   );

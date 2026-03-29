@@ -19,11 +19,16 @@ import { SectionCard } from "@/components/shared/section-card";
 import { StatCard } from "@/components/shared/stat-card";
 import { Button } from "@/components/ui/button";
 import {
+  EMPTY_DASHBOARD_METRICS,
   getDashboardMetrics,
   type DashboardMetrics
 } from "@/lib/business/metrics";
 import { listApartments } from "@/lib/data/apartments";
-import { getSettings, type SettingsRow } from "@/lib/data/settings";
+import {
+  DEFAULT_SETTINGS,
+  getSettings,
+  type SettingsRow
+} from "@/lib/data/settings";
 import { formatCurrency } from "@/lib/formatters";
 import type { Database } from "@/lib/supabase/database.types";
 
@@ -33,8 +38,8 @@ type ApartmentPerformanceRow = DashboardMetrics["apartmentPerformance"][number];
 
 export default async function DashboardPage() {
   const [metricsResult, apartmentsResult, settings] = await Promise.all([
-    getDashboardMetrics(),
-    listApartments({ status: "all" }),
+    getDashboardMetrics().catch((): DashboardMetrics => EMPTY_DASHBOARD_METRICS),
+    listApartments({ status: "all" }).catch((): ApartmentRow[] => []),
     getSettings().catch((): SettingsRow | null => null)
   ]);
   const metrics: DashboardMetrics = metricsResult;
@@ -44,7 +49,7 @@ export default async function DashboardPage() {
     metrics.apartmentPerformance;
   const revenueTrend: DashboardMetrics["revenueTrend"] = metrics.revenueTrend;
 
-  const currency = settings?.currency ?? "USD";
+  const currency = settings?.currency ?? DEFAULT_SETTINGS.currency;
   const apartmentMap = new Map(
     apartments.map((apartment: ApartmentRow) => [apartment.id, apartment.title] as const)
   );

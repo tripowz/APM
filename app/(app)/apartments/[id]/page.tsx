@@ -10,7 +10,11 @@ import { SectionCard } from "@/components/shared/section-card";
 import { StatusBadge } from "@/components/shared/status-badge";
 import { Button } from "@/components/ui/button";
 import { getApartmentDetails } from "@/lib/data/apartments";
-import { getSettings, type SettingsRow } from "@/lib/data/settings";
+import {
+  DEFAULT_SETTINGS,
+  getSettings,
+  type SettingsRow
+} from "@/lib/data/settings";
 import { formatShortDate } from "@/lib/dates";
 import { formatCurrency } from "@/lib/formatters";
 import type { Database } from "@/lib/supabase/database.types";
@@ -52,7 +56,7 @@ export default async function ApartmentDetailsPage({
   const apartmentBookings: ApartmentDetails["bookings"] = details.bookings;
   const apartmentExpenses: ApartmentDetails["expenses"] = details.expenses;
 
-  const currency = settings?.currency ?? "USD";
+  const currency = settings?.currency ?? DEFAULT_SETTINGS.currency;
 
   return (
     <div className="flex flex-col gap-6">

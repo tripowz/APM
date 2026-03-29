@@ -85,6 +85,19 @@ export type ReportMetrics = {
   expensesRows: ExpenseRow[];
 };
 
+export const EMPTY_DASHBOARD_METRICS: DashboardMetrics = {
+  occupiedToday: 0,
+  freeToday: 0,
+  upcomingCheckIns: 0,
+  upcomingCheckOuts: 0,
+  monthlyRevenue: 0,
+  monthlyExpenses: 0,
+  monthlyProfit: 0,
+  recentBookings: [],
+  apartmentPerformance: [],
+  revenueTrend: []
+};
+
 function startOfTodayIso() {
   return toIsoDate(new Date());
 }
@@ -121,6 +134,29 @@ function normalizeReportFilters(filters: ReportFilters = {}) {
   };
 }
 
+export function createEmptyReportMetrics(
+  filters: ReportFilters = {}
+): ReportMetrics {
+  const normalized = normalizeReportFilters(filters);
+
+  return {
+    filters: normalized,
+    revenue: 0,
+    expenses: 0,
+    profit: 0,
+    bookingsCount: 0,
+    averageBookingValue: 0,
+    occupancySnapshot: {
+      occupiedApartmentDays: 0,
+      availableApartmentDays: 0,
+      occupancyRate: 0
+    },
+    apartmentBreakdown: [],
+    bookings: [],
+    expensesRows: []
+  };
+}
+
 export async function getDashboardMetrics(): Promise<DashboardMetrics> {
   const today = startOfTodayIso();
   const sevenDaysAhead = addDays(today, 7);
@@ -132,9 +168,9 @@ export async function getDashboardMetrics(): Promise<DashboardMetrics> {
   const currentMonthToExclusive = toIsoDate(nextMonth);
 
   const [apartmentsResult, bookingsResult, expensesResult] = await Promise.all([
-    listApartments({ status: "all" }),
-    listBookings({ includeCancelled: true }),
-    listExpenses()
+    listApartments({ status: "all" }).catch((): ApartmentRow[] => []),
+    listBookings({ includeCancelled: true }).catch((): BookingRow[] => []),
+    listExpenses().catch((): ExpenseRow[] => [])
   ]);
   const apartments: ApartmentRow[] = apartmentsResult;
   const bookings: BookingRow[] = bookingsResult;
@@ -265,9 +301,9 @@ export async function getReportMetrics(
   const toExclusive = addDays(normalized.to, 1);
 
   const [apartmentsResult, bookingsResult, expensesResult] = await Promise.all([
-    listApartments({ status: "all" }),
-    listBookings({ includeCancelled: true }),
-    listExpenses()
+    listApartments({ status: "all" }).catch((): ApartmentRow[] => []),
+    listBookings({ includeCancelled: true }).catch((): BookingRow[] => []),
+    listExpenses().catch((): ExpenseRow[] => [])
   ]);
   const apartments: ApartmentRow[] = apartmentsResult;
   const bookings: BookingRow[] = bookingsResult;

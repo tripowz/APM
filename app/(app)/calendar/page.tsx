@@ -32,11 +32,11 @@ export default async function CalendarPage({ searchParams }: CalendarPageProps) 
   const apartmentId = params?.apartmentId;
 
   const [apartmentsResult, bookingsResult] = await Promise.all([
-    listApartments({ status: "all" }),
+    listApartments({ status: "all" }).catch((): ApartmentRow[] => []),
     listBookings({
       apartmentId,
       month: monthKey
-    })
+    }).catch((): BookingRow[] => [])
   ]);
   const apartments: ApartmentRow[] = apartmentsResult;
   const bookings: BookingRow[] = bookingsResult;

@@ -1,6 +1,7 @@
 import { Users } from "lucide-react";
 
 import { RealtimeRefresh } from "@/components/realtime/realtime-refresh";
+import { EmptyState } from "@/components/shared/empty-state";
 import { PageHeader } from "@/components/shared/page-header";
 import { SectionCard } from "@/components/shared/section-card";
 import { StatusBadge } from "@/components/shared/status-badge";
@@ -10,7 +11,11 @@ import { UserRoleForm } from "@/components/settings/user-role-form";
 import {
   requireAuthenticatedUser
 } from "@/lib/auth/session";
-import { getSettings, type SettingsRow } from "@/lib/data/settings";
+import {
+  DEFAULT_SETTINGS,
+  getSettings,
+  type SettingsRow
+} from "@/lib/data/settings";
 import { listUsers, type UserRow } from "@/lib/data/users";
 import { hasServiceRoleKey } from "@/lib/supabase/env";
 import type { CurrentAppUser } from "@/lib/types/app";
@@ -19,7 +24,7 @@ export default async function SettingsPage() {
   const currentUser: CurrentAppUser = await requireAuthenticatedUser();
   const [settings, usersResult] = await Promise.all([
     getSettings().catch((): SettingsRow | null => null),
-    listUsers()
+    listUsers().catch((): UserRow[] => [])
   ]);
   const users: UserRow[] = usersResult;
   const currentUserId = currentUser.id;
@@ -47,9 +52,9 @@ export default async function SettingsPage() {
         >
           <BusinessSettingsForm
             initialValues={{
-              business_name: settings?.business_name ?? "",
-              currency: settings?.currency ?? "USD",
-              timezone: settings?.timezone ?? "Asia/Tashkent"
+              business_name: settings?.business_name ?? DEFAULT_SETTINGS.business_name,
+              currency: settings?.currency ?? DEFAULT_SETTINGS.currency,
+              timezone: settings?.timezone ?? DEFAULT_SETTINGS.timezone
             }}
           />
         </SectionCard>
@@ -79,57 +84,65 @@ export default async function SettingsPage() {
         description="This MVP keeps user management intentionally simple: just owner and member roles."
         actions={<StatusBadge tone="info">{users.length} users</StatusBadge>}
       >
-        <div className="grid gap-4">
-          {users.map((user: UserRow) => {
-            const isCurrentUser = user.id === currentUserId;
+        {users.length === 0 ? (
+          <EmptyState
+            icon={Users}
+            title="No user profiles are stored yet"
+            description="The current signed-in account can still access the workspace. Once profile rows exist, team members will appear here."
+          />
+        ) : (
+          <div className="grid gap-4">
+            {users.map((user: UserRow) => {
+              const isCurrentUser = user.id === currentUserId;
 
-            return (
-              <div
-                key={user.id}
-                className="rounded-2xl border border-border bg-surface-muted p-4"
-              >
-                <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-                  <div className="flex items-start gap-3">
-                    <div className="flex size-11 items-center justify-center rounded-2xl bg-white text-foreground shadow-card">
-                      <Users className="size-5" />
-                    </div>
-                    <div className="flex flex-col gap-1">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <p className="text-sm font-semibold text-foreground">
-                          {user.full_name}
-                        </p>
-                        <StatusBadge tone={user.role === "owner" ? "info" : "neutral"}>
-                          {user.role}
-                        </StatusBadge>
-                        {isCurrentUser ? (
-                          <StatusBadge tone="success">Current user</StatusBadge>
-                        ) : null}
+              return (
+                <div
+                  key={user.id}
+                  className="rounded-2xl border border-border bg-surface-muted p-4"
+                >
+                  <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+                    <div className="flex items-start gap-3">
+                      <div className="flex size-11 items-center justify-center rounded-2xl bg-white text-foreground shadow-card">
+                        <Users className="size-5" />
                       </div>
-                      <p className="text-sm text-muted-foreground">{user.email}</p>
+                      <div className="flex flex-col gap-1">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <p className="text-sm font-semibold text-foreground">
+                            {user.full_name}
+                          </p>
+                          <StatusBadge tone={user.role === "owner" ? "info" : "neutral"}>
+                            {user.role}
+                          </StatusBadge>
+                          {isCurrentUser ? (
+                            <StatusBadge tone="success">Current user</StatusBadge>
+                          ) : null}
+                        </div>
+                        <p className="text-sm text-muted-foreground">{user.email}</p>
+                      </div>
                     </div>
-                  </div>
 
-                  {canManageUsers ? (
-                    <UserRoleForm
-                      userId={user.id}
-                      role={user.role}
-                      disabled={isCurrentUser}
-                      helperText={
-                        isCurrentUser
-                          ? "The current signed-in owner role stays fixed inside this MVP."
-                          : "Update the role if responsibilities change."
-                      }
-                    />
-                  ) : (
-                    <div className="text-sm text-muted-foreground">
-                      Role changes are limited to the owner account.
-                    </div>
-                  )}
+                    {canManageUsers ? (
+                      <UserRoleForm
+                        userId={user.id}
+                        role={user.role}
+                        disabled={isCurrentUser}
+                        helperText={
+                          isCurrentUser
+                            ? "The current signed-in owner role stays fixed inside this MVP."
+                            : "Update the role if responsibilities change."
+                        }
+                      />
+                    ) : (
+                      <div className="text-sm text-muted-foreground">
+                        Role changes are limited to the owner account.
+                      </div>
+                    )}
+                  </div>
                 </div>
-              </div>
-            );
-          })}
-        </div>
+              );
+            })}
+          </div>
+        )}
       </SectionCard>
     </div>
   );

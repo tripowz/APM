@@ -2,7 +2,11 @@ import { AppSidebar } from "@/components/app-shell/app-sidebar";
 import { AppTopbar } from "@/components/app-shell/app-topbar";
 import { PageContainer } from "@/components/shared/page-container";
 import { requireAuthenticatedUser } from "@/lib/auth/session";
-import { getSettings, type SettingsRow } from "@/lib/data/settings";
+import {
+  DEFAULT_SETTINGS,
+  getSettings,
+  type SettingsRow
+} from "@/lib/data/settings";
 
 type AppLayoutProps = Readonly<{
   children: React.ReactNode;
@@ -21,7 +25,7 @@ export default async function AppLayout({ children }: AppLayoutProps) {
         <div className="flex min-h-screen flex-1 flex-col">
           <AppTopbar
             currentUser={currentUser}
-            businessName={settings?.business_name ?? "Apartment Management"}
+            businessName={settings?.business_name ?? DEFAULT_SETTINGS.business_name}
           />
           <main className="flex-1 px-3 pb-6 pt-4 sm:px-6 lg:px-8 lg:pb-8">
             <PageContainer>{children}</PageContainer>

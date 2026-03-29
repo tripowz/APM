@@ -15,6 +15,12 @@ import {
 export type SettingsRow = Database["public"]["Tables"]["settings"]["Row"];
 type SettingsInsert = Database["public"]["Tables"]["settings"]["Insert"];
 
+export const DEFAULT_SETTINGS = {
+  business_name: "Apartment Management",
+  currency: "USD",
+  timezone: "Asia/Tashkent"
+} as const;
+
 export async function getSettings(): Promise<SettingsRow | null> {
   const supabase = await createClient();
   const { data: settingsResult, error } = await supabase

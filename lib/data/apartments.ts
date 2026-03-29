@@ -102,8 +102,10 @@ export async function getApartmentDetails(
   const apartment: ApartmentRow = apartmentResult;
 
   const [bookingsResult, expensesResult] = await Promise.all([
-    listBookings({ apartmentId: id, includeCancelled: true }),
-    listExpenses(id)
+    listBookings({ apartmentId: id, includeCancelled: true }).catch(
+      (): BookingRow[] => []
+    ),
+    listExpenses(id).catch((): ExpenseRow[] => [])
   ]);
   const bookings: BookingRow[] = bookingsResult;
   const expenses: ExpenseRow[] = expensesResult;
@@ -140,8 +142,8 @@ export async function listApartmentSummaries(
 ): Promise<ApartmentSummary[]> {
   const apartments = await listApartments(filters);
   const [bookingsResult, expensesResult] = await Promise.all([
-    listBookings(),
-    listExpenses()
+    listBookings().catch((): BookingRow[] => []),
+    listExpenses().catch((): ExpenseRow[] => [])
   ]);
   const bookings: BookingRow[] = bookingsResult;
   const expenses: ExpenseRow[] = expensesResult;

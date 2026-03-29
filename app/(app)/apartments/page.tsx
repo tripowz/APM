@@ -8,7 +8,11 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { listApartmentSummaries } from "@/lib/data/apartments";
-import { getSettings, type SettingsRow } from "@/lib/data/settings";
+import {
+  DEFAULT_SETTINGS,
+  getSettings,
+  type SettingsRow
+} from "@/lib/data/settings";
 import { formatCompactNumber, formatCurrency } from "@/lib/formatters";
 
 type ApartmentSummary = Awaited<ReturnType<typeof listApartmentSummaries>>[number];
@@ -30,12 +34,12 @@ export default async function ApartmentsPage({
     listApartmentSummaries({
       query,
       status
-    }),
+    }).catch((): ApartmentSummary[] => []),
     getSettings().catch((): SettingsRow | null => null)
   ]);
   const apartments: ApartmentSummary[] = apartmentsResult;
 
-  const currency = settings?.currency ?? "USD";
+  const currency = settings?.currency ?? DEFAULT_SETTINGS.currency;
 
   return (
     <div className="flex flex-col gap-6">

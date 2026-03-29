@@ -10,7 +10,11 @@ import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { listApartments } from "@/lib/data/apartments";
 import { listExpenses } from "@/lib/data/expenses";
-import { getSettings, type SettingsRow } from "@/lib/data/settings";
+import {
+  DEFAULT_SETTINGS,
+  getSettings,
+  type SettingsRow
+} from "@/lib/data/settings";
 import { getMonthStart, toIsoDate } from "@/lib/dates";
 import { formatCurrency } from "@/lib/formatters";
 import type { Database } from "@/lib/supabase/database.types";
@@ -47,14 +51,14 @@ export default async function ExpensesPage({ searchParams }: ExpensesPageProps) 
   } as const;
 
   const [apartmentsResult, expenses, settings] = await Promise.all([
-    listApartments({ status: "all" }),
-    listExpenses(filters),
+    listApartments({ status: "all" }).catch((): ApartmentRow[] => []),
+    listExpenses(filters).catch((): ExpenseRow[] => []),
     getSettings().catch((): SettingsRow | null => null)
   ]);
   const apartments: ApartmentRow[] = apartmentsResult;
   const expenseRows: ExpenseRow[] = expenses;
 
-  const currency = settings?.currency ?? "USD";
+  const currency = settings?.currency ?? DEFAULT_SETTINGS.currency;
   const apartmentMap = new Map(
     apartments.map((apartment: ApartmentRow) => [apartment.id, apartment] as const)
   );

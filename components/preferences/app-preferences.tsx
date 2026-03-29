@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import {
   DISPLAY_CURRENCY_COOKIE_NAME,
   LOCALE_COOKIE_NAME,
-} from "@/lib/preferences";
+} from "@/lib/preferences/constants";
 import { getMessages } from "@/lib/i18n/messages";
 import type { AppLocale, DisplayCurrency } from "@/lib/types/domain";
 
@@ -74,4 +74,3 @@ export function AppPreferences({
     </div>
   );
 }
-

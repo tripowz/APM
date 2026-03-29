@@ -1,23 +1,37 @@
-import { formatCompactNumber, formatCurrency } from "@/lib/formatters";
+﻿import { formatCompactNumber, formatCurrency } from "@/lib/formatters";
+import { formatMonthLabel, parseIsoDate } from "@/lib/dates";
+import { getMessages } from "@/lib/i18n/messages";
+import type { AppLocale, DisplayCurrency } from "@/lib/types/domain";
 
 type RevenueTrendChartProps = {
   data: Array<{
     label: string;
     total: number;
   }>;
-  currency: string;
+  currency: DisplayCurrency;
+  locale?: AppLocale;
 };
+
+function formatTrendLabel(label: string, locale: AppLocale) {
+  if (/^\d{4}-\d{2}$/.test(label)) {
+    return formatMonthLabel(parseIsoDate(`${label}-01`), locale);
+  }
+
+  return label;
+}
 
 export function RevenueTrendChart({
   data,
-  currency
+  currency,
+  locale = "ru"
 }: RevenueTrendChartProps) {
+  const messages = getMessages(locale);
   const maxValue = Math.max(...data.map((item) => item.total), 0);
 
   if (data.length === 0) {
     return (
       <div className="flex min-h-[220px] items-center justify-center rounded-2xl border border-dashed border-border bg-surface-muted px-6 py-10 text-center text-sm text-muted-foreground">
-        Revenue trend data will appear here once bookings are recorded.
+        {messages.dashboard.noRecentBookings}
       </div>
     );
   }
@@ -31,25 +45,24 @@ export function RevenueTrendChart({
           return (
             <div key={item.label} className="flex h-full flex-col justify-end gap-3">
               <div className="text-center text-xs font-medium text-muted-foreground">
-                {item.total > 0 ? formatCompactNumber(item.total) : "0"}
+                {item.total > 0 ? formatCompactNumber(item.total, locale) : "0"}
               </div>
               <div className="flex h-40 items-end justify-center">
                 <div
                   className="w-full rounded-t-2xl bg-primary shadow-soft transition-all duration-300"
                   style={{ height: `${barHeight}%` }}
-                  title={formatCurrency(item.total, currency)}
+                  title={formatCurrency(item.total, currency, locale)}
                 />
               </div>
               <div className="text-center text-xs font-medium text-muted-foreground">
-                {item.label}
+                {formatTrendLabel(item.label, locale)}
               </div>
             </div>
           );
         })}
       </div>
       <p className="text-sm text-muted-foreground">
-        Revenue counts full booking value only for bookings in a revenue status
-        whose check-in date falls in each month.
+        {messages.dashboard.revenueTrendDesc}
       </p>
     </div>
   );

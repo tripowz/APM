@@ -5,6 +5,8 @@ import { PageHeader } from "@/components/shared/page-header";
 import { SectionCard } from "@/components/shared/section-card";
 import { Button } from "@/components/ui/button";
 import { listApartments } from "@/lib/data/apartments";
+import { getMessages } from "@/lib/i18n/messages";
+import { getAppPreferences } from "@/lib/preferences";
 
 type NewBookingPageProps = {
   searchParams?: Promise<{
@@ -17,31 +19,36 @@ export default async function NewBookingPage({
   searchParams
 }: NewBookingPageProps) {
   const params = await searchParams;
-  const apartments = await listApartments({ status: "all" });
+  const [{ locale }, apartments] = await Promise.all([
+    getAppPreferences(),
+    listApartments({ status: "all" })
+  ]);
+  const messages = getMessages(locale);
 
   return (
     <div className="flex flex-col gap-6">
       <PageHeader
-        eyebrow="Bookings"
-        title="Create booking"
-        description="Add a booking, capture payment status, and validate conflicts before saving."
+        eyebrow={messages.bookings.eyebrow}
+        title={messages.dashboard.addBooking}
+        description={messages.calendar.description}
         actions={
           params?.returnTo ? (
             <Button asChild variant="outline" size="lg">
-              <Link href={params.returnTo}>Back</Link>
+              <Link href={params.returnTo}>{messages.app.back}</Link>
             </Button>
           ) : null
         }
       />
 
       <SectionCard
-        title="Booking details"
-        description="Cancelled bookings do not block dates. All other booking statuses run through conflict validation on the server."
+        title={messages.bookings.editTitle}
+        description={messages.bookings.todayActionDescription}
       >
         <BookingForm
           apartments={apartments}
           defaultApartmentId={params?.apartmentId}
           returnTo={params?.returnTo}
+          locale={locale}
         />
       </SectionCard>
     </div>

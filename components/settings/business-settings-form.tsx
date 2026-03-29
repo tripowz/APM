@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useActionState } from "react";
 import { useFormStatus } from "react-dom";
@@ -10,6 +10,8 @@ import {
 import { FormMessage } from "@/components/shared/form-message";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Select } from "@/components/ui/select";
+import type { AppLocale } from "@/lib/types/domain";
 
 type BusinessSettingsFormProps = {
   initialValues: {
@@ -17,37 +19,61 @@ type BusinessSettingsFormProps = {
     currency?: string | null;
     timezone?: string | null;
   };
+  locale?: AppLocale;
 };
 
 const initialState: SettingsActionState = {};
 
-function SubmitButton() {
+function SubmitButton({ locale = "ru" }: { locale?: AppLocale }) {
   const { pending } = useFormStatus();
+  const label = locale === "uz" ? "Sozlamalarni saqlash" : "Сохранить настройки";
+  const pendingLabel = locale === "uz" ? "Saqlanmoqda..." : "Сохраняем...";
 
   return (
     <Button type="submit" size="lg" className="w-full sm:w-auto" disabled={pending}>
-      {pending ? "Saving settings..." : "Save settings"}
+      {pending ? pendingLabel : label}
     </Button>
   );
 }
 
 export function BusinessSettingsForm({
-  initialValues
+  initialValues,
+  locale = "ru"
 }: BusinessSettingsFormProps) {
   const [state, formAction] = useActionState(
     saveWorkspaceSettingsAction,
     initialState
   );
+  const labels =
+    locale === "uz"
+      ? {
+          businessName: "Biznes nomi",
+          currency: "Asosiy valyuta",
+          timezone: "Vaqt zonasi",
+          currencyHint: "Asosiy hisob va hisobotlar USD bo'yicha yuritiladi.",
+          timezoneHint:
+            "Kunlik hisobotlar va operatsion sanalar shu vaqt zonasi asosida hisoblanadi."
+        }
+      : {
+          businessName: "Название бизнеса",
+          currency: "Основная валюта",
+          timezone: "Часовой пояс",
+          currencyHint: "Основной учет и отчеты считаются в USD.",
+          timezoneHint:
+            "Ежедневные отчеты и операционные даты считаются по этому часовому поясу."
+        };
 
   return (
     <form action={formAction} className="grid gap-5">
+      <input type="hidden" name="locale" value={locale} />
+
       <div className="grid gap-5 lg:grid-cols-3">
         <div className="flex flex-col gap-2 lg:col-span-2">
           <label
             htmlFor="business_name"
             className="text-sm font-medium text-foreground"
           >
-            Business name
+            {labels.businessName}
           </label>
           <Input
             id="business_name"
@@ -61,25 +87,24 @@ export function BusinessSettingsForm({
 
         <div className="flex flex-col gap-2">
           <label htmlFor="currency" className="text-sm font-medium text-foreground">
-            Currency
+            {labels.currency}
           </label>
-          <Input
+          <Select
             id="currency"
             name="currency"
             defaultValue={initialValues.currency ?? "USD"}
-            placeholder="USD"
-            required
-          />
-          <FormMessage tone="muted">
-            Use a short code like USD, EUR, or UZS.
-          </FormMessage>
+          >
+            <option value="USD">USD</option>
+            <option value="UZS">UZS</option>
+          </Select>
+          <FormMessage tone="muted">{labels.currencyHint}</FormMessage>
           <FormMessage>{state.fieldErrors?.currency?.[0]}</FormMessage>
         </div>
       </div>
 
       <div className="flex flex-col gap-2">
         <label htmlFor="timezone" className="text-sm font-medium text-foreground">
-          Timezone
+          {labels.timezone}
         </label>
         <Input
           id="timezone"
@@ -88,9 +113,7 @@ export function BusinessSettingsForm({
           placeholder="Asia/Tashkent"
           required
         />
-        <FormMessage tone="muted">
-          This timezone is used for dashboard summaries and future scheduling.
-        </FormMessage>
+        <FormMessage tone="muted">{labels.timezoneHint}</FormMessage>
         <FormMessage>{state.fieldErrors?.timezone?.[0]}</FormMessage>
       </div>
 
@@ -107,7 +130,7 @@ export function BusinessSettingsForm({
       ) : null}
 
       <div className="flex justify-end">
-        <SubmitButton />
+        <SubmitButton locale={locale} />
       </div>
     </form>
   );

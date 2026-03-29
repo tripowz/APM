@@ -1,10 +1,28 @@
-import { z } from "zod";
+﻿import { z } from "zod";
 
-export const loginSchema = z.object({
-  email: z.string().trim().email("Enter a valid email address."),
-  password: z
-    .string()
-    .min(8, "Password must be at least 8 characters long.")
-});
+import type { AppLocale } from "@/lib/types/domain";
+
+export function createLoginSchema(locale: AppLocale = "ru") {
+  return z.object({
+    email: z
+      .string()
+      .trim()
+      .email(
+        locale === "uz"
+          ? "To'g'ri email manzilini kiriting."
+          : "Укажите корректный email."
+      ),
+    password: z
+      .string()
+      .min(
+        8,
+        locale === "uz"
+          ? "Parol kamida 8 belgidan iborat bo'lishi kerak."
+          : "Пароль должен быть не короче 8 символов."
+      )
+  });
+}
+
+export const loginSchema = createLoginSchema();
 
 export type LoginInput = z.infer<typeof loginSchema>;

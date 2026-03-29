@@ -10,6 +10,8 @@ import { Select } from "@/components/ui/select";
 import { addMonths, formatMonthLabel, getMonthKey, getMonthStart } from "@/lib/dates";
 import { listApartments } from "@/lib/data/apartments";
 import { listBookings } from "@/lib/data/bookings";
+import { getMessages } from "@/lib/i18n/messages";
+import { getAppPreferences } from "@/lib/preferences";
 import type { Database } from "@/lib/supabase/database.types";
 
 type ApartmentRow = Database["public"]["Tables"]["apartments"]["Row"];
@@ -31,22 +33,25 @@ export default async function CalendarPage({ searchParams }: CalendarPageProps) 
   const monthKey = getMonthKey(monthStart);
   const apartmentId = params?.apartmentId;
 
-  const [apartmentsResult, bookingsResult] = await Promise.all([
+  const [apartmentsResult, bookingsResult, preferences] = await Promise.all([
     listApartments({ status: "all" }).catch((): ApartmentRow[] => []),
     listBookings({
       apartmentId,
       month: monthKey
-    }).catch((): BookingRow[] => [])
+    }).catch((): BookingRow[] => []),
+    getAppPreferences()
   ]);
   const apartments: ApartmentRow[] = apartmentsResult;
   const bookings: BookingRow[] = bookingsResult;
+  const locale = preferences.locale;
+  const messages = getMessages(locale);
 
   const apartmentMap = new Map(
     apartments.map((apartment: ApartmentRow) => [apartment.id, apartment.title] as const)
   );
   const enrichedBookings: CalendarBooking[] = bookings.map((booking: BookingRow) => ({
     ...booking,
-    apartment_title: apartmentMap.get(booking.apartment_id) ?? "Unknown apartment"
+    apartment_title: apartmentMap.get(booking.apartment_id) ?? messages.app.noData
   }));
   const previousMonth = getMonthKey(addMonths(monthStart, -1));
   const nextMonth = getMonthKey(addMonths(monthStart, 1));
@@ -59,9 +64,9 @@ export default async function CalendarPage({ searchParams }: CalendarPageProps) 
       />
 
       <PageHeader
-        eyebrow="Calendar"
-        title="Reservation and turnover calendar"
-        description="Use the month view on desktop and the agenda list on mobile to manage apartment occupancy without extra complexity."
+        eyebrow={messages.calendar.eyebrow}
+        title={messages.calendar.title}
+        description={messages.calendar.description}
         actions={
           <Button asChild size="lg" className="w-full sm:w-auto">
             <Link
@@ -70,15 +75,15 @@ export default async function CalendarPage({ searchParams }: CalendarPageProps) 
                 returnTo: `/calendar?month=${monthKey}${apartmentId ? `&apartmentId=${apartmentId}` : ""}`
               }).toString()}`}
             >
-              Add booking
+              {messages.calendar.addBooking}
             </Link>
           </Button>
         }
       />
 
       <SectionCard
-        title="Calendar controls"
-        description="Switch months, filter by apartment, and jump directly into booking creation."
+        title={messages.calendar.controls}
+        description={messages.calendar.controlsDesc}
       >
         <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
           <div className="flex items-center gap-3">
@@ -91,7 +96,7 @@ export default async function CalendarPage({ searchParams }: CalendarPageProps) 
             </Button>
             <div className="rounded-2xl border border-border bg-surface-muted px-4 py-2.5">
               <p className="text-sm font-semibold text-foreground">
-                {formatMonthLabel(monthStart)}
+                {formatMonthLabel(monthStart, locale)}
               </p>
             </div>
             <Button asChild variant="outline" size="icon">
@@ -106,7 +111,7 @@ export default async function CalendarPage({ searchParams }: CalendarPageProps) 
           <form className="grid gap-3 sm:grid-cols-[240px_auto]">
             <input type="hidden" name="month" value={monthKey} />
             <Select name="apartmentId" defaultValue={apartmentId ?? ""}>
-              <option value="">All apartments</option>
+              <option value="">{messages.calendar.allApartments}</option>
               {apartments.map((apartment: ApartmentRow) => (
                 <option key={apartment.id} value={apartment.id}>
                   {apartment.title}
@@ -114,20 +119,21 @@ export default async function CalendarPage({ searchParams }: CalendarPageProps) 
               ))}
             </Select>
             <Button type="submit" variant="secondary">
-              Apply filter
+              {messages.calendar.filter}
             </Button>
           </form>
         </div>
       </SectionCard>
 
       <SectionCard
-        title="Calendar canvas"
-        description="Bookings render across the month grid on desktop and as a simpler agenda on mobile."
+        title={messages.calendar.title}
+        description={messages.calendar.description}
       >
         <MonthCalendar
           monthStart={monthStart}
           bookings={enrichedBookings}
           apartmentId={apartmentId}
+          locale={locale}
         />
       </SectionCard>
     </div>

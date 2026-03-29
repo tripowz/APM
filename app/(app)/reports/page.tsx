@@ -1,4 +1,4 @@
-import Link from "next/link";
+﻿import Link from "next/link";
 import { BarChart3, ReceiptText } from "lucide-react";
 
 import {
@@ -20,13 +20,17 @@ import {
   type ReportMetrics
 } from "@/lib/business/metrics";
 import { listApartments } from "@/lib/data/apartments";
+import { getLatestUsdToUzsRate } from "@/lib/data/exchange-rates";
 import {
-  DEFAULT_SETTINGS,
-  getSettings,
-  type SettingsRow
-} from "@/lib/data/settings";
-import { getMonthStart, formatShortDate, toIsoDate } from "@/lib/dates";
-import { formatCurrency } from "@/lib/formatters";
+  formatMonthLabel,
+  formatShortDate,
+  getMonthStart,
+  parseIsoDate,
+  toIsoDate
+} from "@/lib/dates";
+import { formatUsdAmount } from "@/lib/formatters";
+import { getExpenseCategoryLabel, getMessages } from "@/lib/i18n/messages";
+import { getAppPreferences } from "@/lib/preferences";
 import type { Database } from "@/lib/supabase/database.types";
 
 type ApartmentRow = Database["public"]["Tables"]["apartments"]["Row"];
@@ -53,14 +57,24 @@ type ReportsPageProps = {
 
 export default async function ReportsPage({ searchParams }: ReportsPageProps) {
   const params = await searchParams;
+  const today = new Date();
+  const todayIso = toIsoDate(today);
+  const weekStart = new Date(today);
+  weekStart.setUTCDate(today.getUTCDate() - ((today.getUTCDay() + 6) % 7));
+  const weekEnd = new Date(weekStart);
+  weekEnd.setUTCDate(weekStart.getUTCDate() + 6);
+  const monthStart = getMonthStart();
+  const monthEnd = new Date(
+    Date.UTC(monthStart.getUTCFullYear(), monthStart.getUTCMonth() + 1, 0)
+  );
   const filters = {
-    from: params?.from ?? toIsoDate(getMonthStart()),
-    to: params?.to ?? toIsoDate(new Date()),
+    from: params?.from ?? toIsoDate(monthStart),
+    to: params?.to ?? todayIso,
     apartmentId: params?.apartmentId ?? "",
     bookingStatus: params?.bookingStatus ?? "all"
   } as const;
 
-  const [reportResult, apartmentsResult, settings] = await Promise.all([
+  const [reportResult, apartmentsResult, preferences, rateSnapshot] = await Promise.all([
     getReportMetrics({
       from: filters.from,
       to: filters.to,
@@ -75,7 +89,8 @@ export default async function ReportsPage({ searchParams }: ReportsPageProps) {
       })
     ),
     listApartments({ status: "all" }).catch((): ApartmentRow[] => []),
-    getSettings().catch((): SettingsRow | null => null)
+    getAppPreferences(),
+    getLatestUsdToUzsRate().catch(() => null)
   ]);
   const report: ReportMetrics = reportResult;
   const apartments: ApartmentRow[] = apartmentsResult;
@@ -83,8 +98,34 @@ export default async function ReportsPage({ searchParams }: ReportsPageProps) {
     report.apartmentBreakdown;
   const reportBookings: ReportMetrics["bookings"] = report.bookings;
   const reportExpensesRows: ReportMetrics["expensesRows"] = report.expensesRows;
+  const locale = preferences.locale;
+  const displayCurrency = preferences.displayCurrency;
+  const messages = getMessages(locale);
+  const buildRangeHref = (from: string, to: string) =>
+    `/reports?${new URLSearchParams({
+      from,
+      to,
+      apartmentId: filters.apartmentId,
+      bookingStatus: filters.bookingStatus
+    }).toString()}`;
 
-  const currency = settings?.currency ?? DEFAULT_SETTINGS.currency;
+  const formatTrendLabel = (label: string) => {
+    if (/^\d{4}-\d{2}$/.test(label)) {
+      return formatMonthLabel(parseIsoDate(`${label}-01`), locale);
+    }
+
+    if (/^\d{4}-\d{2}-\d{2}$/.test(label)) {
+      return formatShortDate(label, locale);
+    }
+
+    if (/^\d{4}-\d{2}-\d{2} - \d{4}-\d{2}-\d{2}$/.test(label)) {
+      const [from, to] = label.split(" - ");
+      return `${formatShortDate(from, locale)} - ${formatShortDate(to, locale)}`;
+    }
+
+    return label;
+  };
+
   const apartmentMap = new Map(
     apartments.map((apartment: ApartmentRow) => [apartment.id, apartment.title] as const)
   );
@@ -102,35 +143,50 @@ export default async function ReportsPage({ searchParams }: ReportsPageProps) {
       />
 
       <PageHeader
-        eyebrow="Reports"
-        title="Practical revenue and operations reports"
-        description="Revenue counts full booking value when a booking starts inside the selected period and is in a revenue status. Expenses use expense date, and profit is revenue minus expenses."
+        eyebrow={messages.reports.eyebrow}
+        title={messages.reports.title}
+        description={messages.reports.description}
         actions={
           <div className="flex w-full flex-col gap-3 sm:w-auto sm:flex-row">
             <Button asChild variant="outline" size="lg">
-              <Link href="/expenses/new">Add expense</Link>
+              <Link href="/expenses/new">{messages.expenses.addExpense}</Link>
             </Button>
             <Button asChild size="lg">
-              <Link href="/bookings/new">Add booking</Link>
+              <Link href="/bookings/new">{messages.dashboard.addBooking}</Link>
             </Button>
           </div>
         }
       />
 
       <SectionCard
-        title="Filters"
-        description="Keep the reporting logic simple by choosing a date range, optional apartment, and booking status filter."
+        title={messages.reports.filtersTitle}
+        description={messages.reports.filtersDesc}
         actions={
           <StatusBadge tone="info">
-            {report.bookingsCount} bookings in range
+            {report.bookingsCount} {messages.reports.bookingsCount.toLowerCase()}
           </StatusBadge>
         }
       >
+        <div className="mb-4 flex flex-wrap gap-2">
+          <Button asChild variant="outline" size="sm">
+            <Link href={buildRangeHref(todayIso, todayIso)}>{messages.reports.today}</Link>
+          </Button>
+          <Button asChild variant="outline" size="sm">
+            <Link href={buildRangeHref(toIsoDate(weekStart), toIsoDate(weekEnd))}>
+              {messages.reports.week}
+            </Link>
+          </Button>
+          <Button asChild variant="outline" size="sm">
+            <Link href={buildRangeHref(toIsoDate(monthStart), toIsoDate(monthEnd))}>
+              {messages.reports.month}
+            </Link>
+          </Button>
+        </div>
         <form className="grid gap-4 xl:grid-cols-[160px_160px_240px_220px_auto]">
           <Input type="date" name="from" defaultValue={filters.from} />
           <Input type="date" name="to" defaultValue={filters.to} />
           <Select name="apartmentId" defaultValue={filters.apartmentId}>
-            <option value="">All apartments</option>
+            <option value="">{messages.calendar.allApartments}</option>
             {apartments.map((apartment: ApartmentRow) => (
               <option key={apartment.id} value={apartment.id}>
                 {apartment.title}
@@ -138,90 +194,106 @@ export default async function ReportsPage({ searchParams }: ReportsPageProps) {
             ))}
           </Select>
           <Select name="bookingStatus" defaultValue={filters.bookingStatus}>
-            <option value="all">All booking statuses</option>
-            <option value="new">New</option>
-            <option value="confirmed">Confirmed</option>
-            <option value="checked_in">Checked in</option>
-            <option value="checked_out">Checked out</option>
-            <option value="cancelled">Cancelled</option>
+            <option value="all">{messages.bookings.bookingStatus}</option>
+            <option value="new">{messages.statuses.booking.new}</option>
+            <option value="confirmed">{messages.statuses.booking.confirmed}</option>
+            <option value="checked_in">{messages.statuses.booking.checked_in}</option>
+            <option value="checked_out">{messages.statuses.booking.checked_out}</option>
+            <option value="cancelled">{messages.statuses.booking.cancelled}</option>
           </Select>
           <Button type="submit" variant="secondary">
-            Apply filters
+            {messages.app.apply}
           </Button>
         </form>
       </SectionCard>
 
-      <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-6">
+      <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4 2xl:grid-cols-7">
         <StatCard
-          label="Revenue"
-          value={formatCurrency(report.revenue, currency)}
-          description="Bookings in a revenue status whose check-in date falls in the selected period."
+          label={messages.reports.revenue}
+          value={formatUsdAmount(report.revenue, displayCurrency, locale, rateSnapshot)}
+          description={messages.reports.revenue}
           icon={BarChart3}
         />
         <StatCard
-          label="Expenses"
-          value={formatCurrency(report.expenses, currency)}
-          description="Expense entries whose expense date falls in the selected period."
+          label={messages.reports.expenses}
+          value={formatUsdAmount(report.expenses, displayCurrency, locale, rateSnapshot)}
+          description={messages.reports.expenses}
           icon={ReceiptText}
         />
         <StatCard
-          label="Profit"
-          value={formatCurrency(report.profit, currency)}
-          description="Revenue minus expenses for the current report filter."
+          label={messages.reports.profit}
+          value={formatUsdAmount(report.profit, displayCurrency, locale, rateSnapshot)}
+          description={messages.reports.profit}
           icon={BarChart3}
         />
         <StatCard
-          label="Bookings count"
+          label={messages.reports.bookingsCount}
           value={String(report.bookingsCount)}
-          description="Non-cancelled bookings with check-in dates inside the selected period."
+          description={messages.reports.bookingsCount}
           icon={BarChart3}
         />
         <StatCard
-          label="Avg. booking value"
-          value={formatCurrency(report.averageBookingValue, currency)}
-          description="Average value across revenue-eligible bookings in the selected period."
+          label={messages.reports.averageBookingValue}
+          value={formatUsdAmount(
+            report.averageBookingValue,
+            displayCurrency,
+            locale,
+            rateSnapshot
+          )}
+          description={messages.reports.averageBookingValue}
           icon={BarChart3}
         />
         <StatCard
-          label="Occupancy snapshot"
+          label={messages.reports.averageRevenuePerNight}
+          value={formatUsdAmount(
+            report.averageRevenuePerNight,
+            displayCurrency,
+            locale,
+            rateSnapshot
+          )}
+          description={messages.reports.averageRevenuePerNight}
+          icon={BarChart3}
+        />
+        <StatCard
+          label={messages.reports.occupancy}
           value={`${Math.round(report.occupancySnapshot.occupancyRate * 100)}%`}
-          description="Blocked apartment-days divided by available active apartment-days in the selected range."
+          description={messages.reports.occupancy}
           icon={BarChart3}
         />
       </section>
 
       {!hasResults ? (
         <SectionCard
-          title="No report data yet"
-          description="Once bookings and expenses land in the selected period, they will appear here."
+          title={messages.reports.noDataTitle}
+          description={messages.reports.noDataDescription}
         >
           <EmptyState
             icon={BarChart3}
-            title="No report data matches the current filters"
-            description="Try a wider date range, remove apartment filtering, or start by creating a booking or expense."
+            title={messages.reports.noDataTitle}
+            description={messages.reports.noDataDescription}
           />
         </SectionCard>
       ) : null}
 
       <section className="grid gap-6 xl:grid-cols-[1.15fr_0.85fr]">
         <SectionCard
-          title="Apartment breakdown"
-          description="A straightforward apartment-by-apartment summary for the selected report window."
+          title={messages.reports.apartmentBreakdown}
+          description={messages.reports.apartmentBreakdown}
         >
           {apartmentBreakdown.length === 0 ? (
             <EmptyState
               icon={BarChart3}
-              title="No apartments available for reporting"
-              description="Create an apartment first, then bookings and expenses will roll into this report automatically."
+              title={messages.apartments.noneTitle}
+              description={messages.apartments.noneDescription}
             />
           ) : (
             <div className="overflow-hidden rounded-2xl border border-border">
               <div className="hidden grid-cols-[1.2fr_0.6fr_0.8fr_0.8fr_0.8fr] gap-4 bg-surface-muted px-4 py-3 text-xs font-medium uppercase tracking-[0.14em] text-muted-foreground md:grid">
-                <span>Apartment</span>
-                <span>Bookings</span>
-                <span>Revenue</span>
-                <span>Expenses</span>
-                <span>Profit</span>
+                <span>{messages.expenses.apartment}</span>
+                <span>{messages.apartments.bookings}</span>
+                <span>{messages.reports.revenue}</span>
+                <span>{messages.reports.expenses}</span>
+                <span>{messages.reports.profit}</span>
               </div>
               <div className="divide-y divide-border">
                 {apartmentBreakdown.map((item: ApartmentBreakdownRow) => (
@@ -235,13 +307,13 @@ export default async function ReportsPage({ searchParams }: ReportsPageProps) {
                     </p>
                     <p className="text-sm text-muted-foreground">{item.bookingsCount}</p>
                     <p className="text-sm text-foreground">
-                      {formatCurrency(item.revenue, currency)}
+                      {formatUsdAmount(item.revenue, displayCurrency, locale, rateSnapshot)}
                     </p>
                     <p className="text-sm text-foreground">
-                      {formatCurrency(item.expenses, currency)}
+                      {formatUsdAmount(item.expenses, displayCurrency, locale, rateSnapshot)}
                     </p>
                     <p className="text-sm font-semibold text-foreground">
-                      {formatCurrency(item.profit, currency)}
+                      {formatUsdAmount(item.profit, displayCurrency, locale, rateSnapshot)}
                     </p>
                   </Link>
                 ))}
@@ -251,13 +323,13 @@ export default async function ReportsPage({ searchParams }: ReportsPageProps) {
         </SectionCard>
 
         <SectionCard
-          title="Occupancy snapshot"
-          description="This uses booking date overlap, not booking value, so occupancy stays understandable."
+          title={messages.reports.occupancy}
+          description={messages.reports.occupancy}
         >
           <div className="grid gap-3 sm:grid-cols-3">
             <div className="surface-muted p-4">
               <p className="text-sm font-medium text-muted-foreground">
-                Occupied apartment-days
+                {messages.reports.occupiedDays}
               </p>
               <p className="mt-2 text-2xl font-semibold text-foreground">
                 {report.occupancySnapshot.occupiedApartmentDays}
@@ -265,7 +337,7 @@ export default async function ReportsPage({ searchParams }: ReportsPageProps) {
             </div>
             <div className="surface-muted p-4">
               <p className="text-sm font-medium text-muted-foreground">
-                Available apartment-days
+                {messages.reports.availableDays}
               </p>
               <p className="mt-2 text-2xl font-semibold text-foreground">
                 {report.occupancySnapshot.availableApartmentDays}
@@ -273,7 +345,7 @@ export default async function ReportsPage({ searchParams }: ReportsPageProps) {
             </div>
             <div className="surface-muted p-4">
               <p className="text-sm font-medium text-muted-foreground">
-                Occupancy rate
+                {messages.reports.occupancyRate}
               </p>
               <p className="mt-2 text-2xl font-semibold text-foreground">
                 {Math.round(report.occupancySnapshot.occupancyRate * 100)}%
@@ -285,14 +357,61 @@ export default async function ReportsPage({ searchParams }: ReportsPageProps) {
 
       <section className="grid gap-6 xl:grid-cols-2">
         <SectionCard
-          title="Bookings in report period"
-          description="These bookings are grouped into the report by check-in date."
+          title={messages.reports.categoryBreakdown}
+          description={messages.reports.categoryBreakdown}
+        >
+          <div className="grid gap-3">
+            {report.expenseCategoryBreakdown.map((item) => (
+              <div
+                key={item.category}
+                className="surface-muted flex items-center justify-between p-4"
+              >
+                <span className="text-sm font-medium text-foreground">
+                  {getExpenseCategoryLabel(locale, item.category)}
+                </span>
+                <span className="text-sm font-semibold text-foreground">
+                  {formatUsdAmount(item.total, displayCurrency, locale, rateSnapshot)}
+                </span>
+              </div>
+            ))}
+          </div>
+        </SectionCard>
+
+        <SectionCard title={messages.reports.trend} description={messages.reports.trend}>
+          <div className="grid gap-3">
+            {report.trend.map((item) => (
+              <div
+                key={item.label}
+                className="surface-muted grid gap-2 p-4 sm:grid-cols-4 sm:items-center"
+              >
+                <p className="text-sm font-semibold text-foreground">
+                  {formatTrendLabel(item.label)}
+                </p>
+                <p className="text-sm text-muted-foreground">
+                  {formatUsdAmount(item.revenue, displayCurrency, locale, rateSnapshot)}
+                </p>
+                <p className="text-sm text-muted-foreground">
+                  {formatUsdAmount(item.expenses, displayCurrency, locale, rateSnapshot)}
+                </p>
+                <p className="text-sm font-semibold text-foreground">
+                  {formatUsdAmount(item.profit, displayCurrency, locale, rateSnapshot)}
+                </p>
+              </div>
+            ))}
+          </div>
+        </SectionCard>
+      </section>
+
+      <section className="grid gap-6 xl:grid-cols-2">
+        <SectionCard
+          title={messages.reports.bookingsList}
+          description={messages.reports.bookingsList}
         >
           {reportBookings.length === 0 ? (
             <EmptyState
               icon={BarChart3}
-              title="No bookings in this report period"
-              description="Bookings will appear here once their check-in date falls inside the selected range."
+              title={messages.reports.noDataTitle}
+              description={messages.reports.noDataDescription}
             />
           ) : (
             <div className="flex flex-col gap-3">
@@ -309,20 +428,27 @@ export default async function ReportsPage({ searchParams }: ReportsPageProps) {
                           {booking.guest_name}
                         </p>
                         <p className="text-sm text-muted-foreground">
-                          {apartmentMap.get(booking.apartment_id) ?? "Unknown apartment"}
+                          {apartmentMap.get(booking.apartment_id) ?? messages.app.noData}
                         </p>
                       </div>
                       <div className="flex flex-wrap items-center gap-2">
-                        <BookingStatusBadge status={booking.booking_status} />
-                        <PaymentStatusBadge status={booking.payment_status} />
+                        <BookingStatusBadge status={booking.booking_status} locale={locale} />
+                        <PaymentStatusBadge status={booking.payment_status} locale={locale} />
                       </div>
                     </div>
                     <div className="flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
                       <span>
-                        {formatShortDate(booking.check_in)} to{" "}
-                        {formatShortDate(booking.check_out)}
+                        {formatShortDate(booking.check_in, locale)} -{" "}
+                        {formatShortDate(booking.check_out, locale)}
                       </span>
-                      <span>{formatCurrency(Number(booking.total_amount), currency)}</span>
+                      <span>
+                        {formatUsdAmount(
+                          Number(booking.total_amount_usd ?? booking.total_amount),
+                          displayCurrency,
+                          locale,
+                          rateSnapshot
+                        )}
+                      </span>
                     </div>
                   </div>
                 </Link>
@@ -332,14 +458,14 @@ export default async function ReportsPage({ searchParams }: ReportsPageProps) {
         </SectionCard>
 
         <SectionCard
-          title="Expenses in report period"
-          description="Expenses are grouped by expense date and remain independent from booking status."
+          title={messages.reports.expensesList}
+          description={messages.reports.expensesList}
         >
           {reportExpensesRows.length === 0 ? (
             <EmptyState
               icon={ReceiptText}
-              title="No expenses in this report period"
-              description="Expenses will appear here once an expense date falls inside the selected range."
+              title={messages.reports.noDataTitle}
+              description={messages.reports.noDataDescription}
             />
           ) : (
             <div className="flex flex-col gap-3">
@@ -352,21 +478,26 @@ export default async function ReportsPage({ searchParams }: ReportsPageProps) {
                   <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                     <div className="flex flex-col gap-1">
                       <p className="text-sm font-semibold text-foreground">
-                        {apartmentMap.get(expense.apartment_id) ?? "Unknown apartment"}
+                        {apartmentMap.get(expense.apartment_id) ?? messages.app.noData}
                       </p>
                       <p className="text-sm text-muted-foreground">
-                        {expense.note || "No note added"}
+                        {expense.note || messages.app.noData}
                       </p>
                     </div>
                     <div className="flex flex-wrap items-center gap-3">
                       <StatusBadge tone="neutral" className="capitalize">
-                        {expense.category}
+                        {getExpenseCategoryLabel(locale, expense.category)}
                       </StatusBadge>
                       <span className="text-sm text-muted-foreground">
-                        {formatShortDate(expense.expense_date)}
+                        {formatShortDate(expense.expense_date, locale)}
                       </span>
                       <span className="text-sm font-semibold text-foreground">
-                        {formatCurrency(Number(expense.amount), currency)}
+                        {formatUsdAmount(
+                          Number(expense.amount_usd ?? expense.amount),
+                          displayCurrency,
+                          locale,
+                          rateSnapshot
+                        )}
                       </span>
                     </div>
                   </div>

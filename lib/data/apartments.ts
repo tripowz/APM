@@ -116,11 +116,13 @@ export async function getApartmentDetails(
   const revenue = activeBookings
     .filter((booking: BookingRow) => isRevenueBookingStatus(booking.booking_status))
     .reduce(
-      (total, booking: BookingRow) => total + Number(booking.total_amount),
+      (total, booking: BookingRow) =>
+        total + Number(booking.total_amount_usd ?? booking.total_amount),
       0
     );
   const totalExpenses = expenses.reduce(
-    (total, expense: ExpenseRow) => total + Number(expense.amount),
+    (total, expense: ExpenseRow) =>
+      total + Number(expense.amount_usd ?? expense.amount),
     0
   );
 
@@ -159,11 +161,13 @@ export async function listApartmentSummaries(
     const revenue = apartmentBookings
       .filter((booking: BookingRow) => isRevenueBookingStatus(booking.booking_status))
       .reduce(
-        (total, booking: BookingRow) => total + Number(booking.total_amount),
+        (total, booking: BookingRow) =>
+          total + Number(booking.total_amount_usd ?? booking.total_amount),
         0
       );
     const expensesTotal = apartmentExpenses.reduce(
-      (total, expense: ExpenseRow) => total + Number(expense.amount),
+      (total, expense: ExpenseRow) =>
+        total + Number(expense.amount_usd ?? expense.amount),
       0
     );
 

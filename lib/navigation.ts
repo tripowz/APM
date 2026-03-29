@@ -7,6 +7,8 @@ import {
   ReceiptText,
   Settings2
 } from "lucide-react";
+import { getMessages } from "@/lib/i18n/messages";
+import type { AppLocale } from "@/lib/types/domain";
 
 export type NavigationItem = {
   title: string;
@@ -15,84 +17,52 @@ export type NavigationItem = {
   icon: LucideIcon;
 };
 
-export const navigationItems: NavigationItem[] = [
-  {
-    title: "Dashboard",
-    href: "/dashboard",
-    description: "Portfolio overview",
-    icon: LayoutDashboard
-  },
-  {
-    title: "Calendar",
-    href: "/calendar",
-    description: "Bookings and turnover",
-    icon: CalendarDays
-  },
-  {
-    title: "Apartments",
-    href: "/apartments",
-    description: "Inventory and status",
-    icon: Building2
-  },
-  {
-    title: "Expenses",
-    href: "/expenses",
-    description: "Costs and categories",
-    icon: ReceiptText
-  },
-  {
-    title: "Reports",
-    href: "/reports",
-    description: "Operational summaries",
-    icon: BarChart3
-  },
-  {
-    title: "Settings",
-    href: "/settings",
-    description: "Business preferences",
-    icon: Settings2
-  }
-];
+export function getNavigationItems(locale: AppLocale): NavigationItem[] {
+  const messages = getMessages(locale);
 
-const pageMeta = [
-  {
-    href: "/dashboard",
-    title: "Dashboard",
-    description: "Overview, activity, and core operating signals"
-  },
-  {
-    href: "/calendar",
-    title: "Calendar",
-    description: "Reservation timing and apartment availability"
-  },
-  {
-    href: "/bookings",
-    title: "Bookings",
-    description: "Create, edit, and manage reservations"
-  },
-  {
-    href: "/apartments",
-    title: "Apartments",
-    description: "Inventory details and apartment readiness"
-  },
-  {
-    href: "/expenses",
-    title: "Expenses",
-    description: "Internal spend tracking and visibility"
-  },
-  {
-    href: "/reports",
-    title: "Reports",
-    description: "Performance summaries and export-ready views"
-  },
-  {
-    href: "/settings",
-    title: "Settings",
-    description: "Workspace defaults and future integrations"
-  }
-];
+  return [
+    {
+      title: messages.navigation.dashboard.title,
+      href: "/dashboard",
+      description: messages.navigation.dashboard.description,
+      icon: LayoutDashboard
+    },
+    {
+      title: messages.navigation.calendar.title,
+      href: "/calendar",
+      description: messages.navigation.calendar.description,
+      icon: CalendarDays
+    },
+    {
+      title: messages.navigation.apartments.title,
+      href: "/apartments",
+      description: messages.navigation.apartments.description,
+      icon: Building2
+    },
+    {
+      title: messages.navigation.expenses.title,
+      href: "/expenses",
+      description: messages.navigation.expenses.description,
+      icon: ReceiptText
+    },
+    {
+      title: messages.navigation.reports.title,
+      href: "/reports",
+      description: messages.navigation.reports.description,
+      icon: BarChart3
+    },
+    {
+      title: messages.navigation.settings.title,
+      href: "/settings",
+      description: messages.navigation.settings.description,
+      icon: Settings2
+    }
+  ];
+}
 
-export function getPageMeta(pathname: string) {
+export function getPageMeta(pathname: string, locale: AppLocale) {
+  const pageMeta = getNavigationItems(locale);
+
   return (
     pageMeta.find(
       (item) => pathname === item.href || pathname.startsWith(`${item.href}/`)

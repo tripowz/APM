@@ -7,25 +7,29 @@ import {
   getSettings,
   type SettingsRow
 } from "@/lib/data/settings";
+import { getAppPreferences } from "@/lib/preferences";
 
 type AppLayoutProps = Readonly<{
   children: React.ReactNode;
 }>;
 
 export default async function AppLayout({ children }: AppLayoutProps) {
-  const currentUser = await requireAuthenticatedUser();
-  const settings: SettingsRow | null = await getSettings().catch(
-    (): SettingsRow | null => null
-  );
+  const [currentUser, settings, preferences] = await Promise.all([
+    requireAuthenticatedUser(),
+    getSettings().catch((): SettingsRow | null => null),
+    getAppPreferences()
+  ]);
 
   return (
     <div className="page-shell">
       <div className="mx-auto flex min-h-screen w-full max-w-[1600px]">
-        <AppSidebar />
+        <AppSidebar locale={preferences.locale} />
         <div className="flex min-h-screen flex-1 flex-col">
           <AppTopbar
             currentUser={currentUser}
             businessName={settings?.business_name ?? DEFAULT_SETTINGS.business_name}
+            locale={preferences.locale}
+            displayCurrency={preferences.displayCurrency}
           />
           <main className="flex-1 px-3 pb-6 pt-4 sm:px-6 lg:px-8 lg:pb-8">
             <PageContainer>{children}</PageContainer>

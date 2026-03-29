@@ -1,6 +1,8 @@
-import "server-only";
+﻿import "server-only";
 
 import {
+  canCheckInBooking,
+  canCheckOutBooking,
   isBlockingBookingStatus,
   isRevenueBookingStatus
 } from "@/lib/business/rules";
@@ -33,6 +35,21 @@ type ReportFilters = {
   bookingStatus?: BookingStatus | "all";
 };
 
+function getBookingRevenueUsd(booking: BookingRow) {
+  return Number(booking.total_amount_usd ?? booking.total_amount);
+}
+
+function getExpenseUsd(expense: ExpenseRow) {
+  return Number(expense.amount_usd ?? expense.amount);
+}
+
+function getBookingNights(booking: Pick<BookingRow, "check_in" | "check_out">) {
+  const start = parseIsoDate(booking.check_in);
+  const end = parseIsoDate(booking.check_out);
+  const diff = end.getTime() - start.getTime();
+  return Math.max(Math.round(diff / 86400000), 0);
+}
+
 export type DashboardMetrics = {
   occupiedToday: number;
   freeToday: number;
@@ -41,6 +58,7 @@ export type DashboardMetrics = {
   monthlyRevenue: number;
   monthlyExpenses: number;
   monthlyProfit: number;
+  todayOperations: BookingRow[];
   recentBookings: BookingRow[];
   apartmentPerformance: Array<{
     apartmentId: string;
@@ -68,6 +86,7 @@ export type ReportMetrics = {
   profit: number;
   bookingsCount: number;
   averageBookingValue: number;
+  averageRevenuePerNight: number;
   occupancySnapshot: {
     occupiedApartmentDays: number;
     availableApartmentDays: number;
@@ -77,6 +96,16 @@ export type ReportMetrics = {
     apartmentId: string;
     apartmentTitle: string;
     bookingsCount: number;
+    revenue: number;
+    expenses: number;
+    profit: number;
+  }>;
+  expenseCategoryBreakdown: Array<{
+    category: ExpenseRow["category"];
+    total: number;
+  }>;
+  trend: Array<{
+    label: string;
     revenue: number;
     expenses: number;
     profit: number;
@@ -93,6 +122,7 @@ export const EMPTY_DASHBOARD_METRICS: DashboardMetrics = {
   monthlyRevenue: 0,
   monthlyExpenses: 0,
   monthlyProfit: 0,
+  todayOperations: [],
   recentBookings: [],
   apartmentPerformance: [],
   revenueTrend: []
@@ -146,12 +176,15 @@ export function createEmptyReportMetrics(
     profit: 0,
     bookingsCount: 0,
     averageBookingValue: 0,
+    averageRevenuePerNight: 0,
     occupancySnapshot: {
       occupiedApartmentDays: 0,
       availableApartmentDays: 0,
       occupancyRate: 0
     },
     apartmentBreakdown: [],
+    expenseCategoryBreakdown: [],
+    trend: [],
     bookings: [],
     expensesRows: []
   };
@@ -201,14 +234,22 @@ export async function getDashboardMetrics(): Promise<DashboardMetrics> {
         booking.check_in >= currentMonthFrom &&
         booking.check_in < currentMonthToExclusive
     )
-    .reduce((sum, booking: BookingRow) => sum + Number(booking.total_amount), 0);
+    .reduce((sum, booking: BookingRow) => sum + getBookingRevenueUsd(booking), 0);
 
   const monthlyExpenses = expenses
     .filter((expense: ExpenseRow) =>
       expense.expense_date >= currentMonthFrom &&
       expense.expense_date < currentMonthToExclusive
     )
-    .reduce((sum, expense: ExpenseRow) => sum + Number(expense.amount), 0);
+    .reduce((sum, expense: ExpenseRow) => sum + getExpenseUsd(expense), 0);
+
+  const todayOperations: BookingRow[] = bookings
+    .filter(
+      (booking: BookingRow) =>
+        canCheckInBooking(booking.booking_status, booking.check_in, today) ||
+        canCheckOutBooking(booking.booking_status, booking.check_out, today)
+    )
+    .sort((a: BookingRow, b: BookingRow) => a.check_in.localeCompare(b.check_in));
 
   const recentBookings: BookingRow[] = bookings
     .filter((booking: BookingRow) => booking.booking_status !== "cancelled")
@@ -222,10 +263,10 @@ export async function getDashboardMetrics(): Promise<DashboardMetrics> {
       );
       const apartmentRevenue = apartmentBookings
         .filter((booking: BookingRow) => isRevenueBookingStatus(booking.booking_status))
-        .reduce((sum, booking: BookingRow) => sum + Number(booking.total_amount), 0);
+        .reduce((sum, booking: BookingRow) => sum + getBookingRevenueUsd(booking), 0);
       const apartmentExpenses = expenses
         .filter((expense: ExpenseRow) => expense.apartment_id === apartment.id)
-        .reduce((sum, expense: ExpenseRow) => sum + Number(expense.amount), 0);
+        .reduce((sum, expense: ExpenseRow) => sum + getExpenseUsd(expense), 0);
 
       return {
         apartmentId: apartment.id,
@@ -257,13 +298,10 @@ export async function getDashboardMetrics(): Promise<DashboardMetrics> {
           booking.check_in >= from &&
           booking.check_in < toExclusive
       )
-      .reduce((sum, booking: BookingRow) => sum + Number(booking.total_amount), 0);
+      .reduce((sum, booking: BookingRow) => sum + getBookingRevenueUsd(booking), 0);
 
     return {
-      label: monthDate.toLocaleString("en-US", {
-        month: "short",
-        timeZone: "UTC"
-      }),
+      label: from.slice(0, 7),
       total
     };
   });
@@ -286,6 +324,7 @@ export async function getDashboardMetrics(): Promise<DashboardMetrics> {
     monthlyRevenue,
     monthlyExpenses,
     monthlyProfit: monthlyRevenue - monthlyExpenses,
+    todayOperations,
     recentBookings,
     apartmentPerformance: apartmentPerformance.sort(
       (a, b) => b.profit - a.profit
@@ -351,10 +390,10 @@ export async function getReportMetrics(
 
   const revenue = periodBookings
     .filter((booking: BookingRow) => isRevenueBookingStatus(booking.booking_status))
-    .reduce((sum, booking: BookingRow) => sum + Number(booking.total_amount), 0);
+    .reduce((sum, booking: BookingRow) => sum + getBookingRevenueUsd(booking), 0);
 
   const expensesTotal = filteredExpenses.reduce(
-    (sum, expense: ExpenseRow) => sum + Number(expense.amount),
+    (sum, expense: ExpenseRow) => sum + getExpenseUsd(expense),
     0
   );
 
@@ -372,6 +411,11 @@ export async function getReportMetrics(
 
   const averageBookingValue =
     revenueBookings.length > 0 ? revenue / revenueBookings.length : 0;
+  const totalNights = revenueBookings.reduce(
+    (sum, booking: BookingRow) => sum + getBookingNights(booking),
+    0
+  );
+  const averageRevenuePerNight = totalNights > 0 ? revenue / totalNights : 0;
 
   const fromDate = parseIsoDate(normalized.from);
   const toDate = parseIsoDate(normalized.to);
@@ -413,10 +457,10 @@ export async function getReportMetrics(
       );
       const apartmentRevenue = apartmentBookings
         .filter((booking: BookingRow) => isRevenueBookingStatus(booking.booking_status))
-        .reduce((sum, booking: BookingRow) => sum + Number(booking.total_amount), 0);
+        .reduce((sum, booking: BookingRow) => sum + getBookingRevenueUsd(booking), 0);
       const apartmentExpenses = filteredExpenses
         .filter((expense: ExpenseRow) => expense.apartment_id === apartment.id)
-        .reduce((sum, expense: ExpenseRow) => sum + Number(expense.amount), 0);
+        .reduce((sum, expense: ExpenseRow) => sum + getExpenseUsd(expense), 0);
 
       return {
         apartmentId: apartment.id,
@@ -433,6 +477,91 @@ export async function getReportMetrics(
       };
     });
 
+  const expenseCategoryBreakdown: ReportMetrics["expenseCategoryBreakdown"] = [
+    "cleaning",
+    "repair",
+    "supplies",
+    "utilities",
+    "commission",
+    "marketing",
+    "other"
+  ].map((category) => ({
+    category,
+    total: filteredExpenses
+      .filter((expense: ExpenseRow) => expense.category === category)
+      .reduce((sum, expense: ExpenseRow) => sum + getExpenseUsd(expense), 0)
+  }));
+
+  const rangeDays = eachDayOfInterval(fromDate, toDate).length;
+  const trendBucketStarts =
+    rangeDays <= 14
+      ? eachDayOfInterval(fromDate, toDate).map((day) => toIsoDate(day))
+      : rangeDays <= 90
+        ? Array.from({ length: Math.ceil(rangeDays / 7) }).map((_, index) =>
+            addDays(normalized.from, index * 7)
+          )
+        : Array.from({
+            length:
+              (toDate.getUTCFullYear() - fromDate.getUTCFullYear()) * 12 +
+              (toDate.getUTCMonth() - fromDate.getUTCMonth()) +
+              1
+          }).map((_, index) =>
+            toIsoDate(
+              new Date(
+                Date.UTC(
+                  fromDate.getUTCFullYear(),
+                  fromDate.getUTCMonth() + index,
+                  1
+                )
+              )
+            )
+          );
+
+  const trend: ReportMetrics["trend"] = trendBucketStarts.map((bucketStart) => {
+    const bucketStartDate = parseIsoDate(bucketStart);
+    const bucketEndExclusive =
+      rangeDays <= 14
+        ? addDays(bucketStart, 1)
+        : rangeDays <= 90
+          ? addDays(bucketStart, 7)
+          : toIsoDate(
+              new Date(
+                Date.UTC(
+                  bucketStartDate.getUTCFullYear(),
+                  bucketStartDate.getUTCMonth() + 1,
+                  1
+                )
+              )
+            );
+
+    const bucketRevenue = revenueBookings
+      .filter(
+        (booking: BookingRow) =>
+          booking.check_in >= bucketStart && booking.check_in < bucketEndExclusive
+      )
+      .reduce((sum, booking: BookingRow) => sum + getBookingRevenueUsd(booking), 0);
+
+    const bucketExpenses = filteredExpenses
+      .filter(
+        (expense: ExpenseRow) =>
+          expense.expense_date >= bucketStart &&
+          expense.expense_date < bucketEndExclusive
+      )
+      .reduce((sum, expense: ExpenseRow) => sum + getExpenseUsd(expense), 0);
+
+    return {
+      label:
+        rangeDays <= 14
+          ? bucketStart
+          : rangeDays <= 90
+            ? `${bucketStart} - ${addDays(bucketStart, 6)}`
+            : bucketStart.slice(0, 7),
+      revenue: bucketRevenue,
+      expenses: bucketExpenses,
+      profit: bucketRevenue - bucketExpenses
+    };
+  });
+
   return {
     filters: normalized,
     revenue,
@@ -440,13 +569,17 @@ export async function getReportMetrics(
     profit: revenue - expensesTotal,
     bookingsCount,
     averageBookingValue,
+    averageRevenuePerNight,
     occupancySnapshot: {
       occupiedApartmentDays,
       availableApartmentDays,
       occupancyRate
     },
     apartmentBreakdown,
+    expenseCategoryBreakdown,
+    trend,
     bookings: periodBookings,
     expensesRows: filteredExpenses
   };
 }
+

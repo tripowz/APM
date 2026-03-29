@@ -1,4 +1,4 @@
-"use server";
+﻿"use server";
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
@@ -10,8 +10,14 @@ import {
   getExpenseById,
   updateExpense
 } from "@/lib/data/expenses";
+import { resolveLocale } from "@/lib/i18n/locale";
+import { getMessages } from "@/lib/i18n/messages";
 import type { Database } from "@/lib/supabase/database.types";
-import type { ExpenseInput, ExpenseUpdateInput } from "@/lib/validations/expense";
+import {
+  createExpenseSchema,
+  type ExpenseInput,
+  type ExpenseUpdateInput
+} from "@/lib/validations/expense";
 
 type ExpenseRow = Database["public"]["Tables"]["expenses"]["Row"];
 
@@ -20,23 +26,8 @@ export type ExpenseFormState = {
   fieldErrors?: Record<string, string[] | undefined>;
 };
 
-const expenseFormSchema = z.object({
+const expenseMetaSchema = z.object({
   expenseId: z.string().uuid().optional(),
-  apartment_id: z.string().uuid(),
-  amount: z.coerce.number().nonnegative("Amount cannot be negative."),
-  category: z.enum([
-    "cleaning",
-    "repair",
-    "supplies",
-    "utilities",
-    "commission",
-    "marketing",
-    "other"
-  ]),
-  expense_date: z
-    .string()
-    .regex(/^\d{4}-\d{2}-\d{2}$/, "Expense date is required."),
-  note: z.string().optional(),
   returnTo: z.string().optional()
 });
 
@@ -67,27 +58,42 @@ export async function saveExpenseAction(
   _prevState: ExpenseFormState,
   formData: FormData
 ): Promise<ExpenseFormState> {
-  const parsed = expenseFormSchema.safeParse({
+  const locale = resolveLocale(formData.get("locale"));
+  const messages = getMessages(locale);
+  const metaParsed = expenseMetaSchema.safeParse({
     expenseId: formData.get("expenseId") || undefined,
+    returnTo: formData.get("returnTo") || undefined
+  });
+  const parsed = createExpenseSchema(locale).safeParse({
     apartment_id: formData.get("apartment_id"),
-    amount: formData.get("amount"),
+    amount_original: formData.get("amount_original"),
+    currency: formData.get("currency"),
     category: formData.get("category"),
     expense_date: formData.get("expense_date"),
-    note: formData.get("note"),
-    returnTo: formData.get("returnTo") || undefined
+    note: formData.get("note")
   });
 
   if (!parsed.success) {
     return {
-      error: "Review the expense details and try again.",
+      error:
+        locale === "uz"
+          ? "Xarajat ma'lumotlarini tekshirib, yana urinib ko'ring."
+          : "Проверьте данные расхода и попробуйте снова.",
       fieldErrors: parsed.error.flatten().fieldErrors
+    };
+  }
+
+  if (!metaParsed.success) {
+    return {
+      error: messages.forms.saveError
     };
   }
 
   try {
     const expensePayload: ExpenseInput = {
       apartment_id: parsed.data.apartment_id,
-      amount: parsed.data.amount,
+      amount_original: parsed.data.amount_original,
+      currency: parsed.data.currency,
       category: parsed.data.category,
       expense_date: parsed.data.expense_date,
       note: parsed.data.note?.trim() ? parsed.data.note.trim() : null
@@ -95,9 +101,9 @@ export async function saveExpenseAction(
 
     let expense: ExpenseRow;
 
-    if (parsed.data.expenseId) {
+    if (metaParsed.data.expenseId) {
       expense = await updateExpense(
-        parsed.data.expenseId,
+        metaParsed.data.expenseId,
         expensePayload as ExpenseUpdateInput
       );
     } else {
@@ -105,13 +111,15 @@ export async function saveExpenseAction(
     }
 
     revalidateExpenseRoutes(expense.apartment_id, expense.id);
-    redirect(getSafeReturnPath(parsed.data.returnTo));
+    redirect(getSafeReturnPath(metaParsed.data.returnTo));
   } catch (error) {
     return {
       error:
         error instanceof Error
           ? error.message
-          : "Unable to save the expense right now."
+          : locale === "uz"
+            ? "Xarajatni hozircha saqlab bo'lmadi."
+            : "Сейчас не удалось сохранить расход."
     };
   }
 }

@@ -4,6 +4,8 @@ import { ApartmentForm } from "@/components/apartments/apartment-form";
 import { PageHeader } from "@/components/shared/page-header";
 import { SectionCard } from "@/components/shared/section-card";
 import { getApartmentById } from "@/lib/data/apartments";
+import { getMessages } from "@/lib/i18n/messages";
+import { getAppPreferences } from "@/lib/preferences";
 import type { Database } from "@/lib/supabase/database.types";
 
 type ApartmentRow = Database["public"]["Tables"]["apartments"]["Row"];
@@ -18,7 +20,11 @@ export default async function EditApartmentPage({
   params
 }: EditApartmentPageProps) {
   const { id } = await params;
-  const apartmentResult = await getApartmentById(id);
+  const [{ locale }, apartmentResult] = await Promise.all([
+    getAppPreferences(),
+    getApartmentById(id)
+  ]);
+  const messages = getMessages(locale);
 
   if (!apartmentResult) {
     return notFound();
@@ -29,16 +35,16 @@ export default async function EditApartmentPage({
   return (
     <div className="flex flex-col gap-6">
       <PageHeader
-        eyebrow="Apartments"
-        title={`Edit ${apartment.title}`}
-        description="Update the apartment profile, pricing, and active status."
+        eyebrow={messages.apartments.eyebrow}
+        title={`${messages.app.edit}: ${apartment.title}`}
+        description={messages.apartments.description}
       />
 
       <SectionCard
-        title="Apartment details"
-        description="Changes here update the apartment profile used throughout bookings and reporting."
+        title={messages.apartments.form.title}
+        description={messages.apartments.description}
       >
-        <ApartmentForm apartment={apartment} />
+        <ApartmentForm apartment={apartment} locale={locale} />
       </SectionCard>
     </div>
   );

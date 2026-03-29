@@ -1,19 +1,27 @@
-const monthFormatter = new Intl.DateTimeFormat("en-US", {
-  month: "long",
-  year: "numeric",
-  timeZone: "UTC"
-});
+import { getLocaleTag } from "@/lib/currency";
+import type { AppLocale } from "@/lib/types/domain";
 
-const monthShortFormatter = new Intl.DateTimeFormat("en-US", {
-  month: "short",
-  day: "numeric",
-  timeZone: "UTC"
-});
+const formatterCache = new Map<string, Intl.DateTimeFormat>();
 
-const weekdayFormatter = new Intl.DateTimeFormat("en-US", {
-  weekday: "short",
-  timeZone: "UTC"
-});
+function getFormatter(
+  locale: AppLocale,
+  options: Intl.DateTimeFormatOptions
+) {
+  const localeTag = getLocaleTag(locale);
+  const key = `${localeTag}:${JSON.stringify(options)}`;
+
+  if (!formatterCache.has(key)) {
+    formatterCache.set(
+      key,
+      new Intl.DateTimeFormat(localeTag, {
+        ...options,
+        timeZone: "UTC"
+      })
+    );
+  }
+
+  return formatterCache.get(key)!;
+}
 
 export function parseIsoDate(date: string) {
   const [year, month, day] = date.split("-").map(Number);
@@ -46,16 +54,24 @@ export function addMonths(date: Date, amount: number) {
   return new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth() + amount, 1));
 }
 
-export function formatMonthLabel(date: Date) {
-  return monthFormatter.format(date);
+export function formatMonthLabel(date: Date, locale: AppLocale = "ru") {
+  return getFormatter(locale, {
+    month: "long",
+    year: "numeric"
+  }).format(date);
 }
 
-export function formatShortDate(date: string | Date) {
-  return monthShortFormatter.format(typeof date === "string" ? parseIsoDate(date) : date);
+export function formatShortDate(date: string | Date, locale: AppLocale = "ru") {
+  return getFormatter(locale, {
+    month: "short",
+    day: "numeric"
+  }).format(typeof date === "string" ? parseIsoDate(date) : date);
 }
 
-export function formatWeekday(date: Date) {
-  return weekdayFormatter.format(date);
+export function formatWeekday(date: Date, locale: AppLocale = "ru") {
+  return getFormatter(locale, {
+    weekday: "short"
+  }).format(date);
 }
 
 export function eachDayOfInterval(start: Date, end: Date) {

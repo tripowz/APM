@@ -1,28 +1,34 @@
-const currencyFormatterCache = new Map<string, Intl.NumberFormat>();
+import {
+  formatCurrency as formatMoney,
+  formatUsdForDisplay,
+  getLocaleTag,
+} from "@/lib/currency";
+import type {
+  AppLocale,
+  DisplayCurrency,
+  ExchangeRateSnapshot,
+  MoneyCurrency,
+} from "@/lib/types/domain";
 
 export function formatCurrency(
   value: number,
-  currency = "USD",
-  locale = "en-US"
+  currency: MoneyCurrency = "USD",
+  locale: AppLocale = "ru"
 ) {
-  const key = `${locale}:${currency}`;
-
-  if (!currencyFormatterCache.has(key)) {
-    currencyFormatterCache.set(
-      key,
-      new Intl.NumberFormat(locale, {
-        style: "currency",
-        currency,
-        maximumFractionDigits: 0
-      })
-    );
-  }
-
-  return currencyFormatterCache.get(key)!.format(value);
+  return formatMoney(value, currency, locale);
 }
 
-export function formatCompactNumber(value: number, locale = "en-US") {
-  return new Intl.NumberFormat(locale, {
+export function formatUsdAmount(
+  valueUsd: number,
+  displayCurrency: DisplayCurrency,
+  locale: AppLocale,
+  rateSnapshot: ExchangeRateSnapshot | null
+) {
+  return formatUsdForDisplay(valueUsd, displayCurrency, locale, rateSnapshot);
+}
+
+export function formatCompactNumber(value: number, locale: AppLocale = "ru") {
+  return new Intl.NumberFormat(getLocaleTag(locale), {
     notation: "compact",
     maximumFractionDigits: 1
   }).format(value);

@@ -1,4 +1,4 @@
-import { dateRangesOverlap, formatShortDate } from "@/lib/dates";
+﻿import { dateRangesOverlap } from "@/lib/dates";
 
 type ConflictCandidate = {
   id: string;
@@ -20,11 +20,7 @@ export class BookingConflictError extends Error {
   existingBooking: ConflictCandidate;
 
   constructor(existingBooking: ConflictCandidate) {
-    super(
-      `This apartment is already booked for ${existingBooking.guest_name} from ${formatShortDate(
-        existingBooking.check_in
-      )} to ${formatShortDate(existingBooking.check_out)}.`
-    );
+    super("Booking conflict detected.");
     this.name = "BookingConflictError";
     this.existingBooking = existingBooking;
   }

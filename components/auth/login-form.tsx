@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useActionState } from "react";
 import { useFormStatus } from "react-dom";
@@ -6,33 +6,42 @@ import { useFormStatus } from "react-dom";
 import { signInAction, type LoginFormState } from "@/app/(auth)/login/actions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { getMessages } from "@/lib/i18n/messages";
+import type { AppLocale } from "@/lib/types/domain";
 
 type LoginFormProps = {
   nextPath?: string;
+  locale?: AppLocale;
 };
 
 const initialState: LoginFormState = {};
 
-function SubmitButton() {
+function LocalizedSubmitButton({ locale }: { locale: AppLocale }) {
   const { pending } = useFormStatus();
+  const messages = getMessages(locale);
 
   return (
     <Button type="submit" size="lg" className="w-full" disabled={pending}>
-      {pending ? "Signing in..." : "Sign in"}
+      {pending ? messages.auth.submitting : messages.auth.submit}
     </Button>
   );
 }
 
-export function LoginForm({ nextPath = "/dashboard" }: LoginFormProps) {
+export function LoginForm({
+  nextPath = "/dashboard",
+  locale = "ru"
+}: LoginFormProps) {
   const [state, formAction] = useActionState(signInAction, initialState);
+  const messages = getMessages(locale);
 
   return (
     <form action={formAction} className="flex flex-col gap-5">
       <input type="hidden" name="next" value={nextPath} />
+      <input type="hidden" name="locale" value={locale} />
 
       <div className="flex flex-col gap-2">
         <label htmlFor="email" className="text-sm font-medium text-foreground">
-          Email
+          {messages.auth.email}
         </label>
         <Input
           id="email"
@@ -46,14 +55,14 @@ export function LoginForm({ nextPath = "/dashboard" }: LoginFormProps) {
 
       <div className="flex flex-col gap-2">
         <label htmlFor="password" className="text-sm font-medium text-foreground">
-          Password
+          {messages.auth.password}
         </label>
         <Input
           id="password"
           name="password"
           type="password"
           autoComplete="current-password"
-          placeholder="Enter your password"
+          placeholder="********"
           required
         />
       </div>
@@ -64,7 +73,7 @@ export function LoginForm({ nextPath = "/dashboard" }: LoginFormProps) {
         </div>
       ) : null}
 
-      <SubmitButton />
+      <LocalizedSubmitButton locale={locale} />
     </form>
   );
 }

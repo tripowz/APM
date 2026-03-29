@@ -1,4 +1,4 @@
-"use server";
+﻿"use server";
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
@@ -8,10 +8,13 @@ import {
   createApartment,
   updateApartment
 } from "@/lib/data/apartments";
+import { resolveLocale } from "@/lib/i18n/locale";
+import { getMessages } from "@/lib/i18n/messages";
 import type { Database } from "@/lib/supabase/database.types";
-import type {
-  ApartmentInput,
-  ApartmentUpdateInput
+import {
+  createApartmentSchema,
+  type ApartmentInput,
+  type ApartmentUpdateInput
 } from "@/lib/validations/apartment";
 
 type ApartmentRow = Database["public"]["Tables"]["apartments"]["Row"];
@@ -21,21 +24,20 @@ export type ApartmentFormState = {
   fieldErrors?: Record<string, string[] | undefined>;
 };
 
-const apartmentFormSchema = z.object({
-  apartmentId: z.string().uuid().optional(),
-  title: z.string().trim().min(2, "Title is required."),
-  address: z.string().trim().min(5, "Address is required."),
-  base_price: z.coerce.number().nonnegative("Base price cannot be negative."),
-  status: z.enum(["active", "inactive"]),
-  notes: z.string().optional()
+const apartmentMetaSchema = z.object({
+  apartmentId: z.string().uuid().optional()
 });
 
 export async function saveApartmentAction(
   _prevState: ApartmentFormState,
   formData: FormData
 ): Promise<ApartmentFormState> {
-  const parsed = apartmentFormSchema.safeParse({
-    apartmentId: formData.get("apartmentId") || undefined,
+  const locale = resolveLocale(formData.get("locale"));
+  const messages = getMessages(locale);
+  const metaParsed = apartmentMetaSchema.safeParse({
+    apartmentId: formData.get("apartmentId") || undefined
+  });
+  const parsed = createApartmentSchema(locale).safeParse({
     title: formData.get("title"),
     address: formData.get("address"),
     base_price: formData.get("base_price"),
@@ -45,8 +47,17 @@ export async function saveApartmentAction(
 
   if (!parsed.success) {
     return {
-      error: "Review the apartment details and try again.",
+      error:
+        locale === "uz"
+          ? "Kvartira ma'lumotlarini tekshirib, yana urinib ko'ring."
+          : "Проверьте данные квартиры и попробуйте снова.",
       fieldErrors: parsed.error.flatten().fieldErrors
+    };
+  }
+
+  if (!metaParsed.success) {
+    return {
+      error: messages.forms.saveError
     };
   }
 
@@ -61,9 +72,9 @@ export async function saveApartmentAction(
 
     let apartment: ApartmentRow;
 
-    if (parsed.data.apartmentId) {
+    if (metaParsed.data.apartmentId) {
       apartment = await updateApartment(
-        parsed.data.apartmentId,
+        metaParsed.data.apartmentId,
         apartmentPayload as ApartmentUpdateInput
       );
     } else {
@@ -80,7 +91,9 @@ export async function saveApartmentAction(
       error:
         error instanceof Error
           ? error.message
-          : "Unable to save the apartment right now."
+          : locale === "uz"
+            ? "Kvartirani hozircha saqlab bo'lmadi."
+            : "Сейчас не удалось сохранить квартиру."
     };
   }
 }

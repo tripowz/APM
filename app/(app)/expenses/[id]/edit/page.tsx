@@ -8,6 +8,8 @@ import { SectionCard } from "@/components/shared/section-card";
 import { Button } from "@/components/ui/button";
 import { listApartments } from "@/lib/data/apartments";
 import { getExpenseById } from "@/lib/data/expenses";
+import { getMessages } from "@/lib/i18n/messages";
+import { getAppPreferences } from "@/lib/preferences";
 import type { Database } from "@/lib/supabase/database.types";
 
 type ExpenseRow = Database["public"]["Tables"]["expenses"]["Row"];
@@ -28,10 +30,12 @@ export default async function EditExpensePage({
 }: EditExpensePageProps) {
   const { id } = await params;
   const resolvedSearchParams = await searchParams;
-  const [expenseResult, apartmentsResult] = await Promise.all([
+  const [{ locale }, expenseResult, apartmentsResult] = await Promise.all([
+    getAppPreferences(),
     getExpenseById(id),
     listApartments({ status: "all" })
   ]);
+  const messages = getMessages(locale);
 
   if (!expenseResult) {
     return notFound();
@@ -45,26 +49,31 @@ export default async function EditExpensePage({
   return (
     <div className="flex flex-col gap-6">
       <PageHeader
-        eyebrow="Expenses"
-        title="Edit expense"
-        description="Update the category, date, apartment, or note for this expense."
+        eyebrow={messages.expenses.eyebrow}
+        title={messages.app.edit}
+        description={messages.expenses.description}
         actions={
           <Button asChild variant="outline" size="lg">
-            <Link href={returnTo}>Back</Link>
+            <Link href={returnTo}>{messages.app.back}</Link>
           </Button>
         }
       />
 
       <SectionCard
-        title="Expense details"
-        description="Changes here are reflected in apartment profit and reports."
+        title={messages.expenses.ledgerTitle}
+        description={messages.expenses.filtersDesc}
       >
-        <ExpenseForm expense={expense} apartments={apartments} returnTo={returnTo} />
+        <ExpenseForm
+          expense={expense}
+          apartments={apartments}
+          returnTo={returnTo}
+          locale={locale}
+        />
       </SectionCard>
 
       <SectionCard
-        title="Delete expense"
-        description="Delete the expense if it was entered by mistake."
+        title={messages.app.delete}
+        description={messages.expenses.emptyDescription}
       >
         <form action={deleteExpenseAction}>
           <input type="hidden" name="expenseId" value={expense.id} />
@@ -74,7 +83,7 @@ export default async function EditExpensePage({
             variant="outline"
             className="border-danger/30 text-danger hover:bg-danger/5"
           >
-            Delete expense
+            {messages.app.delete}
           </Button>
         </form>
       </SectionCard>

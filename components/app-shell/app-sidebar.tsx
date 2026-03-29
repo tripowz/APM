@@ -4,10 +4,13 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Building2 } from "lucide-react";
 
-import { navigationItems } from "@/lib/navigation";
+import { getMessages } from "@/lib/i18n/messages";
+import { getNavigationItems } from "@/lib/navigation";
+import type { AppLocale } from "@/lib/types/domain";
 import { cn } from "@/lib/utils";
 
 type SidebarNavigationProps = {
+  locale: AppLocale;
   className?: string;
   onNavigate?: () => void;
 };
@@ -17,10 +20,12 @@ function isRouteActive(pathname: string, href: string) {
 }
 
 export function SidebarNavigation({
+  locale,
   className,
   onNavigate
 }: SidebarNavigationProps) {
   const pathname = usePathname();
+  const navigationItems = getNavigationItems(locale);
 
   return (
     <nav className={cn("flex flex-col gap-1", className)}>
@@ -75,7 +80,9 @@ export function SidebarNavigation({
   );
 }
 
-export function AppSidebar() {
+export function AppSidebar({ locale }: { locale: AppLocale }) {
+  const messages = getMessages(locale);
+
   return (
     <aside className="sticky top-0 hidden h-screen w-[296px] shrink-0 px-5 py-5 lg:block">
       <div className="flex h-full flex-col rounded-[28px] border border-sidebar-border bg-sidebar p-4 shadow-soft">
@@ -86,23 +93,23 @@ export function AppSidebar() {
           <div className="flex flex-col">
             <span className="text-sm font-semibold text-foreground">APM</span>
             <span className="text-xs text-muted-foreground">
-              Internal operations
+              {messages.app.subtitle}
             </span>
           </div>
         </div>
 
         <div className="hairline my-4" />
 
-        <SidebarNavigation className="flex-1" />
+        <SidebarNavigation locale={locale} className="flex-1" />
 
         <div className="hairline my-4" />
 
         <div className="surface-panel flex flex-col gap-2 p-4">
           <span className="text-sm font-semibold text-foreground">
-            Internal MVP
+            {messages.app.name}
           </span>
           <p className="text-sm leading-6 text-muted-foreground">
-            Built for one apartment business with simple auth, practical reporting, and room for realtime updates.
+            {messages.apartments.description}
           </p>
         </div>
       </div>

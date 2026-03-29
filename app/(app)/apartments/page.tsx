@@ -8,12 +8,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { listApartmentSummaries } from "@/lib/data/apartments";
-import {
-  DEFAULT_SETTINGS,
-  getSettings,
-  type SettingsRow
-} from "@/lib/data/settings";
-import { formatCompactNumber, formatCurrency } from "@/lib/formatters";
+import { getLatestUsdToUzsRate } from "@/lib/data/exchange-rates";
+import { formatCompactNumber, formatUsdAmount } from "@/lib/formatters";
+import { getMessages } from "@/lib/i18n/messages";
+import { getAppPreferences } from "@/lib/preferences";
 
 type ApartmentSummary = Awaited<ReturnType<typeof listApartmentSummaries>>[number];
 
@@ -30,33 +28,35 @@ export default async function ApartmentsPage({
   const params = await searchParams;
   const query = params?.q?.trim() ?? "";
   const status = params?.status ?? "all";
-  const [apartmentsResult, settings] = await Promise.all([
+  const [apartmentsResult, preferences, rateSnapshot] = await Promise.all([
     listApartmentSummaries({
       query,
       status
     }).catch((): ApartmentSummary[] => []),
-    getSettings().catch((): SettingsRow | null => null)
+    getAppPreferences(),
+    getLatestUsdToUzsRate().catch(() => null)
   ]);
   const apartments: ApartmentSummary[] = apartmentsResult;
-
-  const currency = settings?.currency ?? DEFAULT_SETTINGS.currency;
+  const locale = preferences.locale;
+  const displayCurrency = preferences.displayCurrency;
+  const messages = getMessages(locale);
 
   return (
     <div className="flex flex-col gap-6">
       <PageHeader
-        eyebrow="Apartments"
-        title="Apartment inventory workspace"
-        description="Search, review, and maintain each apartment with a clean operational summary."
+        eyebrow={messages.apartments.eyebrow}
+        title={messages.apartments.title}
+        description={messages.apartments.description}
         actions={
           <Button asChild size="lg" className="w-full sm:w-auto">
-            <Link href="/apartments/new">New apartment</Link>
+            <Link href="/apartments/new">{messages.apartments.newApartment}</Link>
           </Button>
         }
       />
 
       <SectionCard
-        title="Filters"
-        description="Search by apartment title or address, then narrow by current apartment status."
+        title={messages.apartments.filtersTitle}
+        description={messages.apartments.filtersDesc}
       >
         <form className="grid gap-4 lg:grid-cols-[1fr_220px_auto]">
           <div className="relative">
@@ -64,24 +64,28 @@ export default async function ApartmentsPage({
             <Input
               name="q"
               defaultValue={query}
-              placeholder="Search apartment title or address"
+              placeholder={messages.apartments.searchPlaceholder}
               className="pl-11"
             />
           </div>
           <Select name="status" defaultValue={status}>
-            <option value="all">All statuses</option>
-            <option value="active">Active</option>
-            <option value="inactive">Inactive</option>
+            <option value="all">{messages.apartments.allStatuses}</option>
+            <option value="active">{messages.statuses.apartmentStatus.active}</option>
+            <option value="inactive">{messages.statuses.apartmentStatus.inactive}</option>
           </Select>
           <Button type="submit" variant="secondary">
-            Apply filters
+            {messages.app.apply}
           </Button>
         </form>
       </SectionCard>
 
       <SectionCard
-        title="Apartment list"
-        description={`${apartments.length} apartment${apartments.length === 1 ? "" : "s"} matched your current filters.`}
+        title={messages.apartments.listTitle}
+        description={
+          apartments.length === 0
+            ? messages.apartments.noneDescription
+            : messages.apartments.description
+        }
       >
         {apartments.length === 0 ? (
           <div className="flex min-h-[240px] flex-col items-center justify-center gap-3 rounded-2xl border border-dashed border-border bg-surface-muted px-6 py-10 text-center">
@@ -90,11 +94,10 @@ export default async function ApartmentsPage({
             </div>
             <div className="flex max-w-md flex-col gap-2">
               <h3 className="text-base font-semibold text-foreground">
-                No apartments match the current filters
+                {messages.apartments.noneTitle}
               </h3>
               <p className="text-sm leading-6 text-muted-foreground">
-                Clear the search or add a new apartment to start tracking bookings,
-                expenses, and profitability.
+                {messages.apartments.noneDescription}
               </p>
             </div>
           </div>
@@ -114,7 +117,7 @@ export default async function ApartmentsPage({
                       <StatusBadge
                         tone={apartment.status === "active" ? "success" : "neutral"}
                       >
-                        {apartment.status}
+                        {messages.statuses.apartmentStatus[apartment.status]}
                       </StatusBadge>
                     </div>
                     <p className="text-sm leading-6 text-muted-foreground">
@@ -122,41 +125,56 @@ export default async function ApartmentsPage({
                     </p>
                   </div>
                   <Button asChild variant="outline" size="sm">
-                    <Link href={`/apartments/${apartment.id}`}>Open</Link>
+                    <Link href={`/apartments/${apartment.id}`}>{messages.apartments.open}</Link>
                   </Button>
                 </div>
 
                 <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
                   <div className="rounded-2xl border border-border bg-white p-4">
                     <p className="text-xs uppercase tracking-[0.14em] text-muted-foreground">
-                      Bookings
+                      {messages.apartments.bookings}
                     </p>
                     <p className="mt-2 text-xl font-semibold text-foreground">
-                      {formatCompactNumber(apartment.stats.bookingsCount)}
+                      {formatCompactNumber(apartment.stats.bookingsCount, locale)}
                     </p>
                   </div>
                   <div className="rounded-2xl border border-border bg-white p-4">
                     <p className="text-xs uppercase tracking-[0.14em] text-muted-foreground">
-                      Revenue
+                      {messages.apartments.revenue}
                     </p>
                     <p className="mt-2 text-xl font-semibold text-foreground">
-                      {formatCurrency(apartment.stats.revenue, currency)}
+                      {formatUsdAmount(
+                        apartment.stats.revenue,
+                        displayCurrency,
+                        locale,
+                        rateSnapshot
+                      )}
                     </p>
                   </div>
                   <div className="rounded-2xl border border-border bg-white p-4">
                     <p className="text-xs uppercase tracking-[0.14em] text-muted-foreground">
-                      Expenses
+                      {messages.apartments.expenses}
                     </p>
                     <p className="mt-2 text-xl font-semibold text-foreground">
-                      {formatCurrency(apartment.stats.expenses, currency)}
+                      {formatUsdAmount(
+                        apartment.stats.expenses,
+                        displayCurrency,
+                        locale,
+                        rateSnapshot
+                      )}
                     </p>
                   </div>
                   <div className="rounded-2xl border border-border bg-white p-4">
                     <p className="text-xs uppercase tracking-[0.14em] text-muted-foreground">
-                      Profit
+                      {messages.apartments.profit}
                     </p>
                     <p className="mt-2 text-xl font-semibold text-foreground">
-                      {formatCurrency(apartment.stats.profit, currency)}
+                      {formatUsdAmount(
+                        apartment.stats.profit,
+                        displayCurrency,
+                        locale,
+                        rateSnapshot
+                      )}
                     </p>
                   </div>
                 </div>

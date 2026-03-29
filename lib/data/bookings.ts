@@ -1,13 +1,15 @@
-import "server-only";
+﻿import "server-only";
 
+import { BookingConflictError, findBookingConflict } from "@/lib/bookings/conflicts";
+import { normalizeToUsd } from "@/lib/currency";
+import { getLatestUsdToUzsRate } from "@/lib/data/exchange-rates";
 import { createClient } from "@/lib/supabase/server";
 import type { Database } from "@/lib/supabase/database.types";
-import { BookingConflictError, findBookingConflict } from "@/lib/bookings/conflicts";
 import {
-  toTableRow,
   toMaybeTableRow,
   toSupabaseInsert,
   toSupabaseUpdate,
+  toTableRow,
   toTableRows
 } from "@/lib/supabase/tables";
 import {
@@ -60,12 +62,10 @@ export async function listBookings(
   const { data: bookingsResult, error } = await query;
 
   if (error) {
-    throw new Error(`Failed to load bookings: ${error.message}`);
+    throw new Error(`Не удалось загрузить бронирования: ${error.message}`);
   }
 
-  const bookings: BookingRow[] = toTableRows<"bookings">(bookingsResult);
-
-  return bookings;
+  return toTableRows<"bookings">(bookingsResult);
 }
 
 export async function getBookingById(id: string): Promise<BookingRow | null> {
@@ -77,10 +77,26 @@ export async function getBookingById(id: string): Promise<BookingRow | null> {
     .maybeSingle();
 
   if (error) {
-    throw new Error(`Failed to load booking: ${error.message}`);
+    throw new Error(`Не удалось загрузить бронь: ${error.message}`);
   }
 
   return toMaybeTableRow<"bookings">(bookingResult);
+}
+
+async function resolveExchangeRateForCurrency(currency: BookingInput["currency"]) {
+  if (currency === "USD") {
+    return 1;
+  }
+
+  const latestRate = await getLatestUsdToUzsRate();
+
+  if (!latestRate?.rate) {
+    throw new Error(
+      "Нет актуального курса USD -> UZS. Добавьте запись в таблицу exchange_rates."
+    );
+  }
+
+  return latestRate.rate;
 }
 
 async function assertBookingConflictFree(
@@ -96,11 +112,11 @@ async function assertBookingConflictFree(
     .maybeSingle();
 
   if (apartmentError) {
-    throw new Error(`Failed to validate apartment: ${apartmentError.message}`);
+    throw new Error(`Не удалось проверить квартиру: ${apartmentError.message}`);
   }
 
   if (!apartment) {
-    throw new Error("Select a valid apartment for this booking.");
+    throw new Error("Выберите корректную квартиру для этой брони.");
   }
 
   const { data: existingBookingsResult, error } = await supabase
@@ -112,11 +128,10 @@ async function assertBookingConflictFree(
     .gt("check_out", input.check_in);
 
   if (error) {
-    throw new Error(`Failed to validate booking conflict: ${error.message}`);
+    throw new Error(`Не удалось проверить конфликт брони: ${error.message}`);
   }
 
-  const existingBookings: BookingConflictCandidate[] =
-    existingBookingsResult ?? [];
+  const existingBookings: BookingConflictCandidate[] = existingBookingsResult ?? [];
 
   const conflict = findBookingConflict(
     {
@@ -136,8 +151,31 @@ async function assertBookingConflictFree(
 
 export async function createBooking(input: BookingInput): Promise<BookingRow> {
   const validatedInput: BookingInput = bookingSchema.parse(input);
-  const payload: BookingInsert = validatedInput;
   await assertBookingConflictFree(validatedInput);
+  const exchangeRateUsed = await resolveExchangeRateForCurrency(
+    validatedInput.currency
+  );
+  const totalAmountUsd = normalizeToUsd(
+    validatedInput.total_amount_original,
+    validatedInput.currency,
+    exchangeRateUsed
+  );
+  const payload: BookingInsert = {
+    apartment_id: validatedInput.apartment_id,
+    guest_name: validatedInput.guest_name,
+    guest_phone: validatedInput.guest_phone,
+    check_in: validatedInput.check_in,
+    check_out: validatedInput.check_out,
+    prepaid_amount: validatedInput.prepaid_amount,
+    payment_status: validatedInput.payment_status,
+    booking_status: validatedInput.booking_status,
+    notes: validatedInput.notes,
+    currency: validatedInput.currency,
+    total_amount_original: validatedInput.total_amount_original,
+    total_amount_usd: totalAmountUsd,
+    total_amount: totalAmountUsd,
+    exchange_rate_used: exchangeRateUsed
+  };
   const supabase = await createClient();
   const { data: bookingResult, error } = await supabase
     .from("bookings")
@@ -146,7 +184,7 @@ export async function createBooking(input: BookingInput): Promise<BookingRow> {
     .single();
 
   if (error) {
-    throw new Error(`Failed to create booking: ${error.message}`);
+    throw new Error(`Не удалось создать бронь: ${error.message}`);
   }
 
   return toTableRow<"bookings">(bookingResult);
@@ -159,16 +197,38 @@ export async function updateBooking(
   const existingBooking = await getBookingById(id);
 
   if (!existingBooking) {
-    throw new Error("Booking not found.");
+    throw new Error("Бронь не найдена.");
   }
 
   const validatedInput: BookingInput = bookingSchema.parse({
     ...existingBooking,
     ...input
   });
-  const payload: BookingUpdate = validatedInput;
-
   await assertBookingConflictFree(validatedInput, id);
+  const exchangeRateUsed = await resolveExchangeRateForCurrency(
+    validatedInput.currency
+  );
+  const totalAmountUsd = normalizeToUsd(
+    validatedInput.total_amount_original,
+    validatedInput.currency,
+    exchangeRateUsed
+  );
+  const payload: BookingUpdate = {
+    apartment_id: validatedInput.apartment_id,
+    guest_name: validatedInput.guest_name,
+    guest_phone: validatedInput.guest_phone,
+    check_in: validatedInput.check_in,
+    check_out: validatedInput.check_out,
+    prepaid_amount: validatedInput.prepaid_amount,
+    payment_status: validatedInput.payment_status,
+    booking_status: validatedInput.booking_status,
+    notes: validatedInput.notes,
+    currency: validatedInput.currency,
+    total_amount_original: validatedInput.total_amount_original,
+    total_amount_usd: totalAmountUsd,
+    total_amount: totalAmountUsd,
+    exchange_rate_used: exchangeRateUsed
+  };
   const supabase = await createClient();
   const { data: bookingResult, error } = await supabase
     .from("bookings")
@@ -178,7 +238,7 @@ export async function updateBooking(
     .single();
 
   if (error) {
-    throw new Error(`Failed to update booking: ${error.message}`);
+    throw new Error(`Не удалось обновить бронь: ${error.message}`);
   }
 
   return toTableRow<"bookings">(bookingResult);
@@ -189,7 +249,7 @@ export async function deleteBooking(id: string): Promise<void> {
   const { error } = await supabase.from("bookings").delete().eq("id", id);
 
   if (error) {
-    throw new Error(`Failed to delete booking: ${error.message}`);
+    throw new Error(`Не удалось удалить бронь: ${error.message}`);
   }
 }
 
@@ -206,7 +266,45 @@ export async function cancelBooking(id: string): Promise<BookingRow> {
     .single();
 
   if (error) {
-    throw new Error(`Failed to cancel booking: ${error.message}`);
+    throw new Error(`Не удалось отменить бронь: ${error.message}`);
+  }
+
+  return toTableRow<"bookings">(bookingResult);
+}
+
+export async function checkInBooking(id: string): Promise<BookingRow> {
+  const payload: BookingUpdate = {
+    booking_status: "checked_in"
+  };
+  const supabase = await createClient();
+  const { data: bookingResult, error } = await supabase
+    .from("bookings")
+    .update(toSupabaseUpdate<"bookings">(payload))
+    .eq("id", id)
+    .select("*")
+    .single();
+
+  if (error) {
+    throw new Error(`Не удалось отметить заезд: ${error.message}`);
+  }
+
+  return toTableRow<"bookings">(bookingResult);
+}
+
+export async function checkOutBooking(id: string): Promise<BookingRow> {
+  const payload: BookingUpdate = {
+    booking_status: "checked_out"
+  };
+  const supabase = await createClient();
+  const { data: bookingResult, error } = await supabase
+    .from("bookings")
+    .update(toSupabaseUpdate<"bookings">(payload))
+    .eq("id", id)
+    .select("*")
+    .single();
+
+  if (error) {
+    throw new Error(`Не удалось отметить выезд: ${error.message}`);
   }
 
   return toTableRow<"bookings">(bookingResult);

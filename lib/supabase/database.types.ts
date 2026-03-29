@@ -48,7 +48,9 @@ export type Database = {
           booking_status: Database["public"]["Enums"]["booking_status"];
           check_in: string;
           check_out: string;
+          currency: Database["public"]["Enums"]["currency_code"];
           created_at: string;
+          exchange_rate_used: number;
           guest_name: string;
           guest_phone: string | null;
           id: string;
@@ -56,6 +58,8 @@ export type Database = {
           payment_status: Database["public"]["Enums"]["payment_status"];
           prepaid_amount: number;
           total_amount: number;
+          total_amount_original: number;
+          total_amount_usd: number;
           updated_at: string;
         };
         Insert: {
@@ -63,7 +67,9 @@ export type Database = {
           booking_status?: Database["public"]["Enums"]["booking_status"];
           check_in: string;
           check_out: string;
+          currency?: Database["public"]["Enums"]["currency_code"];
           created_at?: string;
+          exchange_rate_used?: number;
           guest_name: string;
           guest_phone?: string | null;
           id?: string;
@@ -71,6 +77,8 @@ export type Database = {
           payment_status?: Database["public"]["Enums"]["payment_status"];
           prepaid_amount?: number;
           total_amount: number;
+          total_amount_original?: number;
+          total_amount_usd?: number;
           updated_at?: string;
         };
         Update: {
@@ -78,7 +86,9 @@ export type Database = {
           booking_status?: Database["public"]["Enums"]["booking_status"];
           check_in?: string;
           check_out?: string;
+          currency?: Database["public"]["Enums"]["currency_code"];
           created_at?: string;
+          exchange_rate_used?: number;
           guest_name?: string;
           guest_phone?: string | null;
           id?: string;
@@ -86,6 +96,8 @@ export type Database = {
           payment_status?: Database["public"]["Enums"]["payment_status"];
           prepaid_amount?: number;
           total_amount?: number;
+          total_amount_original?: number;
+          total_amount_usd?: number;
           updated_at?: string;
         };
         Relationships: [
@@ -100,9 +112,13 @@ export type Database = {
       expenses: {
         Row: {
           amount: number;
+          amount_original: number;
+          amount_usd: number;
           apartment_id: string;
           category: Database["public"]["Enums"]["expense_category"];
           created_at: string;
+          currency: Database["public"]["Enums"]["currency_code"];
+          exchange_rate_used: number;
           expense_date: string;
           id: string;
           note: string | null;
@@ -110,9 +126,13 @@ export type Database = {
         };
         Insert: {
           amount: number;
+          amount_original?: number;
+          amount_usd?: number;
           apartment_id: string;
           category: Database["public"]["Enums"]["expense_category"];
           created_at?: string;
+          currency?: Database["public"]["Enums"]["currency_code"];
+          exchange_rate_used?: number;
           expense_date: string;
           id?: string;
           note?: string | null;
@@ -120,9 +140,13 @@ export type Database = {
         };
         Update: {
           amount?: number;
+          amount_original?: number;
+          amount_usd?: number;
           apartment_id?: string;
           category?: Database["public"]["Enums"]["expense_category"];
           created_at?: string;
+          currency?: Database["public"]["Enums"]["currency_code"];
+          exchange_rate_used?: number;
           expense_date?: string;
           id?: string;
           note?: string | null;
@@ -136,6 +160,36 @@ export type Database = {
             referencedColumns: ["id"];
           }
         ];
+      };
+      exchange_rates: {
+        Row: {
+          base_currency: Database["public"]["Enums"]["currency_code"];
+          created_at: string;
+          id: string;
+          quote_currency: Database["public"]["Enums"]["currency_code"];
+          rate: number;
+          rate_date: string;
+          source: string;
+        };
+        Insert: {
+          base_currency: Database["public"]["Enums"]["currency_code"];
+          created_at?: string;
+          id?: string;
+          quote_currency: Database["public"]["Enums"]["currency_code"];
+          rate: number;
+          rate_date: string;
+          source: string;
+        };
+        Update: {
+          base_currency?: Database["public"]["Enums"]["currency_code"];
+          created_at?: string;
+          id?: string;
+          quote_currency?: Database["public"]["Enums"]["currency_code"];
+          rate?: number;
+          rate_date?: string;
+          source?: string;
+        };
+        Relationships: [];
       };
       settings: {
         Row: {
@@ -207,6 +261,7 @@ export type Database = {
         | "checked_in"
         | "checked_out"
         | "cancelled";
+      currency_code: "USD" | "UZS";
       expense_category:
         | "cleaning"
         | "repair"

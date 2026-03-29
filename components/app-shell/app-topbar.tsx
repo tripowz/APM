@@ -1,10 +1,11 @@
-"use client";
+﻿"use client";
 
 import { useState } from "react";
 import { Menu } from "lucide-react";
 import { usePathname } from "next/navigation";
 
 import { SidebarNavigation } from "@/components/app-shell/app-sidebar";
+import { AppPreferences } from "@/components/preferences/app-preferences";
 import { StatusBadge } from "@/components/shared/status-badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -14,18 +15,30 @@ import {
   SheetTitle,
   SheetTrigger
 } from "@/components/ui/sheet";
+import { getMessages } from "@/lib/i18n/messages";
 import { getPageMeta } from "@/lib/navigation";
 import type { CurrentAppUser } from "@/lib/types/app";
+import type { AppLocale, DisplayCurrency } from "@/lib/types/domain";
 
 type AppTopbarProps = {
   currentUser: CurrentAppUser;
   businessName: string;
+  locale: AppLocale;
+  displayCurrency: DisplayCurrency;
 };
 
-export function AppTopbar({ currentUser, businessName }: AppTopbarProps) {
+export function AppTopbar({
+  currentUser,
+  businessName,
+  locale,
+  displayCurrency
+}: AppTopbarProps) {
   const pathname = usePathname();
-  const pageMeta = getPageMeta(pathname);
+  const pageMeta = getPageMeta(pathname, locale);
+  const messages = getMessages(locale);
   const [isOpen, setIsOpen] = useState(false);
+  const openMenuLabel = locale === "uz" ? "Menyuni ochish" : "Открыть меню";
+  const navigationLabel = locale === "uz" ? "Navigatsiya" : "Навигация";
   const initials = currentUser.fullName
     .split(" ")
     .map((part) => part[0])
@@ -40,13 +53,13 @@ export function AppTopbar({ currentUser, businessName }: AppTopbarProps) {
           <div className="lg:hidden">
             <Sheet open={isOpen} onOpenChange={setIsOpen}>
               <SheetTrigger asChild>
-                <Button variant="secondary" size="icon" aria-label="Open menu">
+                <Button variant="secondary" size="icon" aria-label={openMenuLabel}>
                   <Menu className="size-5" />
                 </Button>
               </SheetTrigger>
               <SheetContent side="left" className="w-[300px] bg-sidebar p-4">
                 <SheetHeader>
-                  <SheetTitle className="sr-only">Navigation</SheetTitle>
+                  <SheetTitle className="sr-only">{navigationLabel}</SheetTitle>
                 </SheetHeader>
                 <div className="flex h-full flex-col gap-4">
                   <div className="flex items-center gap-3 rounded-2xl bg-white p-3 shadow-card">
@@ -58,7 +71,7 @@ export function AppTopbar({ currentUser, businessName }: AppTopbarProps) {
                         APM
                       </span>
                       <span className="text-xs text-muted-foreground">
-                        Internal operations
+                        {messages.app.subtitle}
                       </span>
                     </div>
                   </div>
@@ -68,10 +81,17 @@ export function AppTopbar({ currentUser, businessName }: AppTopbarProps) {
                     </p>
                     <p className="text-xs text-muted-foreground">{currentUser.email}</p>
                   </div>
-                  <SidebarNavigation onNavigate={() => setIsOpen(false)} />
+                  <AppPreferences
+                    locale={locale}
+                    displayCurrency={displayCurrency}
+                  />
+                  <SidebarNavigation
+                    locale={locale}
+                    onNavigate={() => setIsOpen(false)}
+                  />
                   <form action="/auth/signout" method="post" className="mt-auto">
                     <Button variant="outline" className="w-full" type="submit">
-                      Sign out
+                      {messages.app.signOut}
                     </Button>
                   </form>
                 </div>
@@ -90,6 +110,9 @@ export function AppTopbar({ currentUser, businessName }: AppTopbarProps) {
         </div>
 
         <div className="flex items-center gap-3">
+          <div className="hidden xl:block">
+            <AppPreferences locale={locale} displayCurrency={displayCurrency} />
+          </div>
           <div className="hidden sm:block">
             <StatusBadge tone="success">{businessName}</StatusBadge>
           </div>
@@ -102,13 +125,15 @@ export function AppTopbar({ currentUser, businessName }: AppTopbarProps) {
                 {currentUser.fullName}
               </span>
               <span className="text-xs capitalize text-muted-foreground">
-                {currentUser.role}
+                {currentUser.role === "owner"
+                  ? messages.app.owner
+                  : messages.app.member}
               </span>
             </div>
           </div>
           <form action="/auth/signout" method="post" className="hidden sm:block">
             <Button variant="outline" size="sm" type="submit">
-              Sign out
+              {messages.app.signOut}
             </Button>
           </form>
           <div className="flex size-11 items-center justify-center rounded-2xl border border-border bg-surface text-sm font-semibold text-foreground sm:hidden">

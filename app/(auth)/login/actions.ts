@@ -1,10 +1,12 @@
-"use server";
+﻿"use server";
 
 import { redirect } from "next/navigation";
 
-import { createClient } from "@/lib/supabase/server";
+import { resolveLocale } from "@/lib/i18n/locale";
+import { getMessages } from "@/lib/i18n/messages";
 import { hasSupabasePublicEnv } from "@/lib/supabase/env";
-import { loginSchema } from "@/lib/validations/auth";
+import { createClient } from "@/lib/supabase/server";
+import { createLoginSchema } from "@/lib/validations/auth";
 
 export type LoginFormState = {
   error?: string;
@@ -22,21 +24,23 @@ export async function signInAction(
   _prevState: LoginFormState,
   formData: FormData
 ): Promise<LoginFormState> {
+  const locale = resolveLocale(formData.get("locale"));
+  const messages = getMessages(locale);
+
   if (!hasSupabasePublicEnv()) {
     return {
-      error:
-        "Supabase auth is not configured for this environment yet. Add NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY in .env.local or Vercel project settings."
+      error: messages.auth.envWarning
     };
   }
 
-  const parsed = loginSchema.safeParse({
+  const parsed = createLoginSchema(locale).safeParse({
     email: formData.get("email"),
     password: formData.get("password")
   });
 
   if (!parsed.success) {
     return {
-      error: parsed.error.issues[0]?.message ?? "Enter a valid email and password."
+      error: parsed.error.issues[0]?.message ?? messages.forms.required
     };
   }
 
@@ -45,7 +49,10 @@ export async function signInAction(
 
   if (error) {
     return {
-      error: error.message
+      error:
+        locale === "uz"
+          ? "Kirish amalga oshmadi. Email va parolni tekshiring."
+          : "Не удалось войти. Проверьте email и пароль."
     };
   }
 

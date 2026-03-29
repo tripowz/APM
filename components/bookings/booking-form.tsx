@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useActionState } from "react";
 import { useFormStatus } from "react-dom";
@@ -12,7 +12,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import { getMessages } from "@/lib/i18n/messages";
 import type { Database } from "@/lib/supabase/database.types";
+import type { AppLocale } from "@/lib/types/domain";
 
 type BookingRow = Database["public"]["Tables"]["bookings"]["Row"];
 type ApartmentOption = Pick<
@@ -25,18 +27,22 @@ type BookingFormProps = {
   apartments: ApartmentOption[];
   defaultApartmentId?: string;
   returnTo?: string;
+  locale?: AppLocale;
 };
 
 const initialState: BookingFormState = {};
 
 function SubmitButton({
   isEditing,
-  disabled
+  disabled,
+  locale
 }: {
   isEditing: boolean;
   disabled?: boolean;
+  locale: AppLocale;
 }) {
   const { pending } = useFormStatus();
+  const messages = getMessages(locale);
 
   return (
     <Button
@@ -47,11 +53,11 @@ function SubmitButton({
     >
       {pending
         ? isEditing
-          ? "Saving booking..."
-          : "Creating booking..."
+          ? messages.bookings.submitEditing
+          : messages.bookings.submitCreating
         : isEditing
-          ? "Save booking"
-          : "Create booking"}
+          ? messages.bookings.submitEdit
+          : messages.bookings.submitCreate}
     </Button>
   );
 }
@@ -60,16 +66,23 @@ export function BookingForm({
   booking,
   apartments,
   defaultApartmentId,
-  returnTo
+  returnTo,
+  locale = "ru"
 }: BookingFormProps) {
   const [state, formAction] = useActionState(saveBookingAction, initialState);
   const isEditing = Boolean(booking);
   const hasApartments = apartments.length > 0;
+  const messages = getMessages(locale);
+  const notesPlaceholder =
+    locale === "uz"
+      ? "Domofon kodi, kelish tafsilotlari yoki mehmon bo'yicha muhim izohlar."
+      : "Код домофона, детали заезда или важные комментарии по гостю.";
 
   return (
     <form action={formAction} className="grid gap-5">
       <input type="hidden" name="bookingId" value={booking?.id ?? ""} />
       <input type="hidden" name="returnTo" value={returnTo ?? "/calendar"} />
+      <input type="hidden" name="locale" value={locale} />
 
       <div className="grid gap-5 lg:grid-cols-2">
         <div className="flex flex-col gap-2">
@@ -77,7 +90,7 @@ export function BookingForm({
             htmlFor="apartment_id"
             className="text-sm font-medium text-foreground"
           >
-            Apartment
+            {messages.bookings.apartment}
           </label>
           <Select
             id="apartment_id"
@@ -87,12 +100,16 @@ export function BookingForm({
             disabled={!hasApartments}
           >
             <option value="" disabled>
-              {hasApartments ? "Select apartment" : "No apartments available"}
+              {hasApartments
+                ? messages.bookings.selectApartment
+                : messages.bookings.noApartments}
             </option>
             {apartments.map((apartment: ApartmentOption) => (
               <option key={apartment.id} value={apartment.id}>
                 {apartment.title}
-                {apartment.status === "inactive" ? " (inactive)" : ""}
+                {apartment.status === "inactive"
+                  ? ` (${messages.statuses.apartmentStatus.inactive.toLowerCase()})`
+                  : ""}
               </option>
             ))}
           </Select>
@@ -104,7 +121,7 @@ export function BookingForm({
             htmlFor="guest_name"
             className="text-sm font-medium text-foreground"
           >
-            Guest name
+            {messages.bookings.guestName}
           </label>
           <Input
             id="guest_name"
@@ -123,7 +140,7 @@ export function BookingForm({
             htmlFor="guest_phone"
             className="text-sm font-medium text-foreground"
           >
-            Guest phone
+            {messages.bookings.guestPhone}
           </label>
           <Input
             id="guest_phone"
@@ -135,7 +152,7 @@ export function BookingForm({
 
         <div className="flex flex-col gap-2">
           <label htmlFor="check_in" className="text-sm font-medium text-foreground">
-            Check-in
+            {messages.bookings.checkIn}
           </label>
           <Input
             id="check_in"
@@ -149,7 +166,7 @@ export function BookingForm({
 
         <div className="flex flex-col gap-2">
           <label htmlFor="check_out" className="text-sm font-medium text-foreground">
-            Check-out
+            {messages.bookings.checkOut}
           </label>
           <Input
             id="check_out"
@@ -165,21 +182,40 @@ export function BookingForm({
       <div className="grid gap-5 lg:grid-cols-4">
         <div className="flex flex-col gap-2">
           <label
-            htmlFor="total_amount"
+            htmlFor="currency"
             className="text-sm font-medium text-foreground"
           >
-            Total amount
+            {messages.bookings.currency}
+          </label>
+          <Select
+            id="currency"
+            name="currency"
+            defaultValue={booking?.currency ?? "USD"}
+          >
+            <option value="USD">USD</option>
+            <option value="UZS">UZS</option>
+          </Select>
+        </div>
+
+        <div className="flex flex-col gap-2">
+          <label
+            htmlFor="total_amount_original"
+            className="text-sm font-medium text-foreground"
+          >
+            {messages.bookings.totalAmount}
           </label>
           <Input
-            id="total_amount"
-            name="total_amount"
+            id="total_amount_original"
+            name="total_amount_original"
             type="number"
             min="0"
             step="1"
-            defaultValue={booking?.total_amount ?? 0}
+            defaultValue={
+              booking?.total_amount_original ?? booking?.total_amount ?? 0
+            }
             required
           />
-          <FormMessage>{state.fieldErrors?.total_amount?.[0]}</FormMessage>
+          <FormMessage>{state.fieldErrors?.total_amount_original?.[0]}</FormMessage>
         </div>
 
         <div className="flex flex-col gap-2">
@@ -187,7 +223,7 @@ export function BookingForm({
             htmlFor="prepaid_amount"
             className="text-sm font-medium text-foreground"
           >
-            Prepaid amount
+            {messages.bookings.prepaidAmount}
           </label>
           <Input
             id="prepaid_amount"
@@ -206,16 +242,16 @@ export function BookingForm({
             htmlFor="payment_status"
             className="text-sm font-medium text-foreground"
           >
-            Payment status
+            {messages.bookings.paymentStatus}
           </label>
           <Select
             id="payment_status"
             name="payment_status"
             defaultValue={booking?.payment_status ?? "unpaid"}
           >
-            <option value="unpaid">Unpaid</option>
-            <option value="partial">Partial</option>
-            <option value="paid">Paid</option>
+            <option value="unpaid">{messages.statuses.payment.unpaid}</option>
+            <option value="partial">{messages.statuses.payment.partial}</option>
+            <option value="paid">{messages.statuses.payment.paid}</option>
           </Select>
         </div>
 
@@ -224,31 +260,31 @@ export function BookingForm({
             htmlFor="booking_status"
             className="text-sm font-medium text-foreground"
           >
-            Booking status
+            {messages.bookings.bookingStatus}
           </label>
           <Select
             id="booking_status"
             name="booking_status"
             defaultValue={booking?.booking_status ?? "new"}
           >
-            <option value="new">New</option>
-            <option value="confirmed">Confirmed</option>
-            <option value="checked_in">Checked in</option>
-            <option value="checked_out">Checked out</option>
-            <option value="cancelled">Cancelled</option>
+            <option value="new">{messages.statuses.booking.new}</option>
+            <option value="confirmed">{messages.statuses.booking.confirmed}</option>
+            <option value="checked_in">{messages.statuses.booking.checked_in}</option>
+            <option value="checked_out">{messages.statuses.booking.checked_out}</option>
+            <option value="cancelled">{messages.statuses.booking.cancelled}</option>
           </Select>
         </div>
       </div>
 
       <div className="flex flex-col gap-2">
         <label htmlFor="notes" className="text-sm font-medium text-foreground">
-          Notes
+          {messages.bookings.notes}
         </label>
         <Textarea
           id="notes"
           name="notes"
           defaultValue={booking?.notes ?? ""}
-          placeholder="Arrival notes, payment instructions, or apartment preparation details."
+          placeholder={notesPlaceholder}
         />
       </div>
 
@@ -260,12 +296,16 @@ export function BookingForm({
 
       {!hasApartments ? (
         <div className="rounded-2xl border border-warning/20 bg-warning/5 px-4 py-3 text-sm text-warning">
-          Add an apartment before creating a booking.
+          {messages.bookings.noApartments}
         </div>
       ) : null}
 
       <div className="flex justify-end">
-        <SubmitButton isEditing={isEditing} disabled={!hasApartments} />
+        <SubmitButton
+          isEditing={isEditing}
+          disabled={!hasApartments}
+          locale={locale}
+        />
       </div>
     </form>
   );

@@ -6,14 +6,15 @@ import {
 } from "@/components/bookings/booking-badges";
 import { StatusBadge } from "@/components/shared/status-badge";
 import { Button } from "@/components/ui/button";
+import { getMessages } from "@/lib/i18n/messages";
 import {
-  formatMonthLabel,
   formatShortDate,
   formatWeekday,
   getCalendarGrid,
   getMonthKey,
   isDateWithinBooking
 } from "@/lib/dates";
+import type { AppLocale } from "@/lib/types/domain";
 
 type CalendarBooking = {
   id: string;
@@ -30,19 +31,21 @@ type MonthCalendarProps = {
   monthStart: Date;
   bookings: CalendarBooking[];
   apartmentId?: string;
+  locale?: AppLocale;
 };
-
-const weekDays = Array.from({ length: 7 }).map((_, index) => {
-  const date = new Date(Date.UTC(2026, 2, 29 + index));
-  return formatWeekday(date);
-});
 
 export function MonthCalendar({
   monthStart,
   bookings,
-  apartmentId
+  apartmentId,
+  locale = "ru"
 }: MonthCalendarProps) {
+  const messages = getMessages(locale);
   const grid = getCalendarGrid(monthStart);
+  const weekDays = Array.from({ length: 7 }).map((_, index) => {
+    const date = new Date(Date.UTC(2026, 2, 29 + index));
+    return formatWeekday(date, locale);
+  });
   const monthKey = getMonthKey(monthStart);
   const calendarReturnTo = `/calendar?month=${monthKey}${apartmentId ? `&apartmentId=${apartmentId}` : ""}`;
 
@@ -105,7 +108,7 @@ export function MonthCalendar({
                 ))}
                 {dayBookings.length > 3 ? (
                   <p className="text-xs text-muted-foreground">
-                    +{dayBookings.length - 3} more bookings
+                    +{dayBookings.length - 3} {messages.calendar.moreBookings}
                   </p>
                 ) : null}
               </div>
@@ -118,10 +121,10 @@ export function MonthCalendar({
         {bookings.length === 0 ? (
           <div className="rounded-2xl border border-dashed border-border bg-surface-muted px-5 py-8 text-center">
             <p className="text-base font-semibold text-foreground">
-              No bookings in {formatMonthLabel(monthStart)}
+              {messages.calendar.emptyMonth}
             </p>
             <p className="mt-2 text-sm leading-6 text-muted-foreground">
-              Add a booking to start tracking apartment occupancy in this month.
+              {messages.calendar.emptyMonthDesc}
             </p>
           </div>
         ) : (
@@ -144,13 +147,13 @@ export function MonthCalendar({
                     </p>
                   </div>
                   <div className="flex flex-wrap gap-2">
-                    <BookingStatusBadge status={booking.booking_status} />
-                    <PaymentStatusBadge status={booking.payment_status} />
+                    <BookingStatusBadge status={booking.booking_status} locale={locale} />
+                    <PaymentStatusBadge status={booking.payment_status} locale={locale} />
                   </div>
                 </div>
                 <p className="text-sm text-muted-foreground">
-                  {formatShortDate(booking.check_in)} to{" "}
-                  {formatShortDate(booking.check_out)}
+                  {formatShortDate(booking.check_in, locale)} -{" "}
+                  {formatShortDate(booking.check_out, locale)}
                 </p>
               </div>
             </Link>
@@ -166,7 +169,7 @@ export function MonthCalendar({
               returnTo: calendarReturnTo
             }).toString()}`}
           >
-            Add booking
+            {messages.calendar.addBooking}
           </Link>
         </Button>
       </div>

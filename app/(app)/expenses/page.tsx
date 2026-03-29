@@ -9,14 +9,12 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { listApartments } from "@/lib/data/apartments";
+import { getLatestUsdToUzsRate } from "@/lib/data/exchange-rates";
 import { listExpenses } from "@/lib/data/expenses";
-import {
-  DEFAULT_SETTINGS,
-  getSettings,
-  type SettingsRow
-} from "@/lib/data/settings";
-import { getMonthStart, toIsoDate } from "@/lib/dates";
-import { formatCurrency } from "@/lib/formatters";
+import { getMessages } from "@/lib/i18n/messages";
+import { formatShortDate, getMonthStart, toIsoDate } from "@/lib/dates";
+import { formatUsdAmount } from "@/lib/formatters";
+import { getAppPreferences } from "@/lib/preferences";
 import type { Database } from "@/lib/supabase/database.types";
 
 type ApartmentRow = Database["public"]["Tables"]["apartments"]["Row"];
@@ -50,20 +48,24 @@ export default async function ExpensesPage({ searchParams }: ExpensesPageProps) 
     category: params?.category ?? "all"
   } as const;
 
-  const [apartmentsResult, expenses, settings] = await Promise.all([
+  const [apartmentsResult, expenses, preferences, rateSnapshot] = await Promise.all([
     listApartments({ status: "all" }).catch((): ApartmentRow[] => []),
     listExpenses(filters).catch((): ExpenseRow[] => []),
-    getSettings().catch((): SettingsRow | null => null)
+    getAppPreferences(),
+    getLatestUsdToUzsRate().catch(() => null)
   ]);
   const apartments: ApartmentRow[] = apartmentsResult;
   const expenseRows: ExpenseRow[] = expenses;
+  const locale = preferences.locale;
+  const displayCurrency = preferences.displayCurrency;
+  const messages = getMessages(locale);
 
-  const currency = settings?.currency ?? DEFAULT_SETTINGS.currency;
   const apartmentMap = new Map(
     apartments.map((apartment: ApartmentRow) => [apartment.id, apartment] as const)
   );
   const totalExpenses = expenseRows.reduce(
-    (sum, expense: ExpenseRow) => sum + Number(expense.amount),
+    (sum, expense: ExpenseRow) =>
+      sum + Number(expense.amount_usd ?? expense.amount),
     0
   );
 
@@ -75,26 +77,26 @@ export default async function ExpensesPage({ searchParams }: ExpensesPageProps) 
       />
 
       <PageHeader
-        eyebrow="Expenses"
-        title="Expense ledger"
-        description="Track apartment expenses with practical filters and a clean internal workflow."
+        eyebrow={messages.expenses.eyebrow}
+        title={messages.expenses.title}
+        description={messages.expenses.description}
         actions={
           <Button asChild size="lg" className="w-full sm:w-auto">
-            <Link href="/expenses/new">Add expense</Link>
+            <Link href="/expenses/new">{messages.expenses.addExpense}</Link>
           </Button>
         }
       />
 
       <SectionCard
-        title="Filters"
-        description="Filter expenses by date range, apartment, and category."
-        actions={<StatusBadge tone="info">{expenseRows.length} entries</StatusBadge>}
+        title={messages.expenses.filtersTitle}
+        description={messages.expenses.filtersDesc}
+        actions={<StatusBadge tone="info">{expenseRows.length}</StatusBadge>}
       >
         <form className="grid gap-4 xl:grid-cols-[160px_160px_240px_220px_auto]">
           <Input type="date" name="from" defaultValue={filters.from} />
           <Input type="date" name="to" defaultValue={filters.to} />
           <Select name="apartmentId" defaultValue={filters.apartmentId ?? ""}>
-            <option value="">All apartments</option>
+            <option value="">{messages.calendar.allApartments}</option>
             {apartments.map((apartment: ApartmentRow) => (
               <option key={apartment.id} value={apartment.id}>
                 {apartment.title}
@@ -102,24 +104,29 @@ export default async function ExpensesPage({ searchParams }: ExpensesPageProps) 
             ))}
           </Select>
           <Select name="category" defaultValue={filters.category}>
-            <option value="all">All categories</option>
-            <option value="cleaning">Cleaning</option>
-            <option value="repair">Repair</option>
-            <option value="supplies">Supplies</option>
-            <option value="utilities">Utilities</option>
-            <option value="commission">Commission</option>
-            <option value="marketing">Marketing</option>
-            <option value="other">Other</option>
+            <option value="all">{messages.expenses.allCategories}</option>
+            <option value="cleaning">{messages.statuses.expenseCategory.cleaning}</option>
+            <option value="repair">{messages.statuses.expenseCategory.repair}</option>
+            <option value="supplies">{messages.statuses.expenseCategory.supplies}</option>
+            <option value="utilities">{messages.statuses.expenseCategory.utilities}</option>
+            <option value="commission">{messages.statuses.expenseCategory.commission}</option>
+            <option value="marketing">{messages.statuses.expenseCategory.marketing}</option>
+            <option value="other">{messages.statuses.expenseCategory.other}</option>
           </Select>
           <Button type="submit" variant="secondary">
-            Apply filters
+            {messages.app.apply}
           </Button>
         </form>
       </SectionCard>
 
       <SectionCard
-        title="Expense ledger"
-        description={`Total spend in this filtered view: ${formatCurrency(totalExpenses, currency)}.`}
+        title={messages.expenses.ledgerTitle}
+        description={`${messages.expenses.totalForPeriod}: ${formatUsdAmount(
+          totalExpenses,
+          displayCurrency,
+          locale,
+          rateSnapshot
+        )}.`}
       >
         {expenseRows.length === 0 ? (
           <div className="flex min-h-[260px] flex-col items-center justify-center gap-3 rounded-2xl border border-dashed border-border bg-surface-muted px-6 py-10 text-center">
@@ -128,22 +135,21 @@ export default async function ExpensesPage({ searchParams }: ExpensesPageProps) 
             </div>
             <div className="flex max-w-md flex-col gap-2">
               <h3 className="text-base font-semibold text-foreground">
-                No expenses match the current filters
+                {messages.expenses.emptyTitle}
               </h3>
               <p className="text-sm leading-6 text-muted-foreground">
-                Adjust the current period or category filters, or create a new
-                expense entry for an apartment.
+                {messages.expenses.emptyDescription}
               </p>
             </div>
           </div>
         ) : (
           <div className="overflow-hidden rounded-2xl border border-border">
             <div className="hidden grid-cols-[1.3fr_0.7fr_0.8fr_0.7fr_120px] gap-4 bg-surface-muted px-4 py-3 text-xs font-medium uppercase tracking-[0.14em] text-muted-foreground md:grid">
-              <span>Apartment</span>
-              <span>Date</span>
-              <span>Category</span>
-              <span>Amount</span>
-              <span className="text-right">Action</span>
+              <span>{messages.expenses.apartment}</span>
+              <span>{messages.expenses.date}</span>
+              <span>{messages.expenses.category}</span>
+              <span>{messages.expenses.amount}</span>
+              <span className="text-right">{messages.app.edit}</span>
             </div>
             <div className="divide-y divide-border">
               {expenseRows.map((expense: ExpenseRow) => {
@@ -156,26 +162,33 @@ export default async function ExpensesPage({ searchParams }: ExpensesPageProps) 
                   >
                     <div className="flex flex-col gap-1">
                       <p className="text-sm font-semibold text-foreground">
-                        {apartment?.title ?? "Unknown apartment"}
+                        {apartment?.title ?? messages.app.noData}
                       </p>
                       <p className="text-sm text-muted-foreground">
-                        {expense.note || "No note added"}
+                        {expense.note || messages.app.noData}
                       </p>
                     </div>
                     <p className="text-sm text-muted-foreground">
-                      {expense.expense_date}
+                      {formatShortDate(expense.expense_date, locale)}
                     </p>
                     <div>
                       <StatusBadge tone="neutral" className="capitalize">
-                        {expense.category}
+                        {messages.statuses.expenseCategory[expense.category]}
                       </StatusBadge>
                     </div>
                     <p className="text-sm font-semibold text-foreground">
-                      {formatCurrency(Number(expense.amount), currency)}
+                      {formatUsdAmount(
+                        Number(expense.amount_usd ?? expense.amount),
+                        displayCurrency,
+                        locale,
+                        rateSnapshot
+                      )}
                     </p>
                     <div className="md:text-right">
                       <Button asChild variant="outline" size="sm">
-                        <Link href={`/expenses/${expense.id}/edit`}>Edit</Link>
+                        <Link href={`/expenses/${expense.id}/edit`}>
+                          {messages.app.edit}
+                        </Link>
                       </Button>
                     </div>
                   </div>

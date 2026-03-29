@@ -16,20 +16,25 @@ import {
   getSettings,
   type SettingsRow
 } from "@/lib/data/settings";
+import { getMessages } from "@/lib/i18n/messages";
+import { getAppPreferences } from "@/lib/preferences";
 import { listUsers, type UserRow } from "@/lib/data/users";
 import { hasServiceRoleKey } from "@/lib/supabase/env";
 import type { CurrentAppUser } from "@/lib/types/app";
 
 export default async function SettingsPage() {
   const currentUser: CurrentAppUser = await requireAuthenticatedUser();
-  const [settings, usersResult] = await Promise.all([
+  const [settings, usersResult, preferences] = await Promise.all([
     getSettings().catch((): SettingsRow | null => null),
-    listUsers().catch((): UserRow[] => [])
+    listUsers().catch((): UserRow[] => []),
+    getAppPreferences()
   ]);
   const users: UserRow[] = usersResult;
   const currentUserId = currentUser.id;
   const canManageUsers = currentUser.role === "owner";
   const inAppInvitesEnabled = hasServiceRoleKey();
+  const locale = preferences.locale;
+  const messages = getMessages(locale);
 
   return (
     <div className="flex flex-col gap-6">
@@ -39,16 +44,20 @@ export default async function SettingsPage() {
       />
 
       <PageHeader
-        eyebrow="Settings"
-        title="Workspace settings"
-        description="Manage business defaults, team access, and the small operational details that keep this internal workspace consistent."
+        eyebrow={messages.settings.eyebrow}
+        title={messages.settings.title}
+        description={messages.settings.description}
       />
 
       <div className="grid gap-6 xl:grid-cols-2">
         <SectionCard
-          title="Workspace profile"
-          description="Business name, display currency, and timezone used across the dashboard."
-          actions={<StatusBadge tone="success">Live</StatusBadge>}
+          title={messages.settings.profileTitle}
+          description={messages.settings.profileDesc}
+          actions={
+            <StatusBadge tone="success">
+              {settings?.currency ?? DEFAULT_SETTINGS.currency}
+            </StatusBadge>
+          }
         >
           <BusinessSettingsForm
             initialValues={{
@@ -56,39 +65,43 @@ export default async function SettingsPage() {
               currency: settings?.currency ?? DEFAULT_SETTINGS.currency,
               timezone: settings?.timezone ?? DEFAULT_SETTINGS.timezone
             }}
+            locale={locale}
           />
         </SectionCard>
 
         <SectionCard
-          title="Add user"
-          description="A small internal flow for onboarding another owner or member account."
+          title={messages.settings.addUserTitle}
+          description={messages.settings.addUserDesc}
           actions={
             <StatusBadge tone={inAppInvitesEnabled ? "success" : "warning"}>
-              {inAppInvitesEnabled ? "In-app creation enabled" : "Manual fallback"}
+              {inAppInvitesEnabled
+                ? messages.settings.inAppEnabled
+                : messages.settings.manualFallback}
             </StatusBadge>
           }
         >
           <InviteUserForm
             enabled={canManageUsers && inAppInvitesEnabled}
+            locale={locale}
             disabledReason={
               !canManageUsers
-                ? "Only the owner can add new users."
-                : "Add SUPABASE_SERVICE_ROLE_KEY to enable in-app user creation. Until then, create the user in Supabase Auth and refresh this page."
+                ? messages.settings.onlyOwner
+                : messages.settings.serviceRoleHint
             }
           />
         </SectionCard>
       </div>
 
       <SectionCard
-        title="Users"
-        description="This MVP keeps user management intentionally simple: just owner and member roles."
-        actions={<StatusBadge tone="info">{users.length} users</StatusBadge>}
+        title={messages.settings.teamTitle}
+        description={messages.settings.teamDesc}
+        actions={<StatusBadge tone="info">{users.length}</StatusBadge>}
       >
         {users.length === 0 ? (
           <EmptyState
             icon={Users}
-            title="No user profiles are stored yet"
-            description="The current signed-in account can still access the workspace. Once profile rows exist, team members will appear here."
+            title={messages.settings.noUsersTitle}
+            description={messages.settings.noUsersDescription}
           />
         ) : (
           <div className="grid gap-4">
@@ -111,10 +124,10 @@ export default async function SettingsPage() {
                             {user.full_name}
                           </p>
                           <StatusBadge tone={user.role === "owner" ? "info" : "neutral"}>
-                            {user.role}
+                            {user.role === "owner" ? messages.app.owner : messages.app.member}
                           </StatusBadge>
                           {isCurrentUser ? (
-                            <StatusBadge tone="success">Current user</StatusBadge>
+                            <StatusBadge tone="success">{messages.settings.currentUser}</StatusBadge>
                           ) : null}
                         </div>
                         <p className="text-sm text-muted-foreground">{user.email}</p>
@@ -126,15 +139,16 @@ export default async function SettingsPage() {
                         userId={user.id}
                         role={user.role}
                         disabled={isCurrentUser}
+                        locale={locale}
                         helperText={
                           isCurrentUser
-                            ? "The current signed-in owner role stays fixed inside this MVP."
-                            : "Update the role if responsibilities change."
+                            ? messages.settings.onlyOwner
+                            : messages.settings.teamDesc
                         }
                       />
                     ) : (
                       <div className="text-sm text-muted-foreground">
-                        Role changes are limited to the owner account.
+                        {messages.settings.onlyOwner}
                       </div>
                     )}
                   </div>

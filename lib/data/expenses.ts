@@ -1,17 +1,18 @@
-import "server-only";
+﻿import "server-only";
 
+import { normalizeToUsd } from "@/lib/currency";
+import { getLatestUsdToUzsRate } from "@/lib/data/exchange-rates";
 import { createClient } from "@/lib/supabase/server";
 import type { Database } from "@/lib/supabase/database.types";
 import {
-  toTableRow,
   toMaybeTableRow,
   toSupabaseInsert,
   toSupabaseUpdate,
+  toTableRow,
   toTableRows
 } from "@/lib/supabase/tables";
 import {
   expenseSchema,
-  expenseUpdateSchema,
   type ExpenseInput,
   type ExpenseUpdateInput
 } from "@/lib/validations/expense";
@@ -65,12 +66,10 @@ export async function listExpenses(
   const { data: expensesResult, error } = await query;
 
   if (error) {
-    throw new Error(`Failed to load expenses: ${error.message}`);
+    throw new Error(`Не удалось загрузить расходы: ${error.message}`);
   }
 
-  const expenses: ExpenseRow[] = toTableRows<"expenses">(expensesResult);
-
-  return expenses;
+  return toTableRows<"expenses">(expensesResult);
 }
 
 export async function getExpenseById(id: string): Promise<ExpenseRow | null> {
@@ -82,14 +81,49 @@ export async function getExpenseById(id: string): Promise<ExpenseRow | null> {
     .maybeSingle();
 
   if (error) {
-    throw new Error(`Failed to load expense: ${error.message}`);
+    throw new Error(`Не удалось загрузить расход: ${error.message}`);
   }
 
   return toMaybeTableRow<"expenses">(expenseResult);
 }
 
+async function resolveExchangeRateForCurrency(currency: ExpenseInput["currency"]) {
+  if (currency === "USD") {
+    return 1;
+  }
+
+  const latestRate = await getLatestUsdToUzsRate();
+
+  if (!latestRate?.rate) {
+    throw new Error(
+      "Нет актуального курса USD -> UZS. Добавьте запись в таблицу exchange_rates."
+    );
+  }
+
+  return latestRate.rate;
+}
+
 export async function createExpense(input: ExpenseInput): Promise<ExpenseRow> {
-  const payload: ExpenseInsert = expenseSchema.parse(input);
+  const validatedInput: ExpenseInput = expenseSchema.parse(input);
+  const exchangeRateUsed = await resolveExchangeRateForCurrency(
+    validatedInput.currency
+  );
+  const amountUsd = normalizeToUsd(
+    validatedInput.amount_original,
+    validatedInput.currency,
+    exchangeRateUsed
+  );
+  const payload: ExpenseInsert = {
+    apartment_id: validatedInput.apartment_id,
+    category: validatedInput.category,
+    expense_date: validatedInput.expense_date,
+    note: validatedInput.note,
+    currency: validatedInput.currency,
+    amount_original: validatedInput.amount_original,
+    amount_usd: amountUsd,
+    amount: amountUsd,
+    exchange_rate_used: exchangeRateUsed
+  };
   const supabase = await createClient();
   const { data: expenseResult, error } = await supabase
     .from("expenses")
@@ -98,7 +132,7 @@ export async function createExpense(input: ExpenseInput): Promise<ExpenseRow> {
     .single();
 
   if (error) {
-    throw new Error(`Failed to create expense: ${error.message}`);
+    throw new Error(`Не удалось создать расход: ${error.message}`);
   }
 
   return toTableRow<"expenses">(expenseResult);
@@ -108,7 +142,39 @@ export async function updateExpense(
   id: string,
   input: ExpenseUpdateInput
 ): Promise<ExpenseRow> {
-  const payload: ExpenseUpdate = expenseUpdateSchema.parse(input);
+  const existingExpense = await getExpenseById(id);
+
+  if (!existingExpense) {
+    throw new Error("Расход не найден.");
+  }
+
+  const validatedInput: ExpenseInput = expenseSchema.parse({
+    apartment_id: input.apartment_id ?? existingExpense.apartment_id,
+    amount_original: input.amount_original ?? existingExpense.amount_original,
+    currency: input.currency ?? existingExpense.currency,
+    category: input.category ?? existingExpense.category,
+    expense_date: input.expense_date ?? existingExpense.expense_date,
+    note: input.note ?? existingExpense.note
+  });
+  const exchangeRateUsed = await resolveExchangeRateForCurrency(
+    validatedInput.currency
+  );
+  const amountUsd = normalizeToUsd(
+    validatedInput.amount_original,
+    validatedInput.currency,
+    exchangeRateUsed
+  );
+  const payload: ExpenseUpdate = {
+    apartment_id: validatedInput.apartment_id,
+    category: validatedInput.category,
+    expense_date: validatedInput.expense_date,
+    note: validatedInput.note,
+    currency: validatedInput.currency,
+    amount_original: validatedInput.amount_original,
+    amount_usd: amountUsd,
+    amount: amountUsd,
+    exchange_rate_used: exchangeRateUsed
+  };
   const supabase = await createClient();
   const { data: expenseResult, error } = await supabase
     .from("expenses")
@@ -118,7 +184,7 @@ export async function updateExpense(
     .single();
 
   if (error) {
-    throw new Error(`Failed to update expense: ${error.message}`);
+    throw new Error(`Не удалось обновить расход: ${error.message}`);
   }
 
   return toTableRow<"expenses">(expenseResult);
@@ -129,6 +195,6 @@ export async function deleteExpense(id: string): Promise<void> {
   const { error } = await supabase.from("expenses").delete().eq("id", id);
 
   if (error) {
-    throw new Error(`Failed to delete expense: ${error.message}`);
+    throw new Error(`Не удалось удалить расход: ${error.message}`);
   }
 }

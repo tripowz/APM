@@ -1,19 +1,29 @@
-"use server";
+﻿"use server";
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 
 import { BookingConflictError } from "@/lib/bookings/conflicts";
+import { canCheckInBooking, canCheckOutBooking } from "@/lib/business/rules";
 import {
   cancelBooking,
+  checkInBooking,
+  checkOutBooking,
   createBooking,
   deleteBooking,
   getBookingById,
   updateBooking
 } from "@/lib/data/bookings";
+import { formatShortDate, toIsoDate } from "@/lib/dates";
+import { resolveLocale } from "@/lib/i18n/locale";
+import { getMessages } from "@/lib/i18n/messages";
 import type { Database } from "@/lib/supabase/database.types";
-import type { BookingInput, BookingUpdateInput } from "@/lib/validations/booking";
+import {
+  createBookingSchema,
+  type BookingInput,
+  type BookingUpdateInput
+} from "@/lib/validations/booking";
 
 type BookingRow = Database["public"]["Tables"]["bookings"]["Row"];
 
@@ -22,33 +32,9 @@ export type BookingFormState = {
   fieldErrors?: Record<string, string[] | undefined>;
 };
 
-const bookingFormSchema = z.object({
+const bookingMetaSchema = z.object({
   bookingId: z.string().uuid().optional(),
-  apartment_id: z.string().uuid(),
-  guest_name: z.string().trim().min(2, "Guest name is required."),
-  guest_phone: z.string().optional(),
-  check_in: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Check-in date is required."),
-  check_out: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Check-out date is required."),
-  total_amount: z.coerce.number().nonnegative("Total amount cannot be negative."),
-  prepaid_amount: z.coerce.number().nonnegative("Prepaid amount cannot be negative."),
-  payment_status: z.enum(["unpaid", "partial", "paid"]),
-  booking_status: z.enum([
-    "new",
-    "confirmed",
-    "checked_in",
-    "checked_out",
-    "cancelled"
-  ]),
-  notes: z.string().optional(),
   returnTo: z.string().optional()
-})
-.refine((value) => value.check_out > value.check_in, {
-  path: ["check_out"],
-  message: "Check-out must be later than check-in."
-})
-.refine((value) => value.prepaid_amount <= value.total_amount, {
-  path: ["prepaid_amount"],
-  message: "Prepaid amount cannot exceed total amount."
 });
 
 function getSafeReturnPath(value?: string | null) {
@@ -71,29 +57,52 @@ function revalidateBookingRoutes(apartmentId: string, bookingId?: string) {
   }
 }
 
+function formatBookingConflictMessage(locale: "ru" | "uz", error: BookingConflictError) {
+  const from = formatShortDate(error.existingBooking.check_in, locale);
+  const to = formatShortDate(error.existingBooking.check_out, locale);
+
+  return locale === "uz"
+    ? `Bu kvartira ${error.existingBooking.guest_name} uchun ${from} dan ${to} gacha band.`
+    : `Эта квартира уже занята для ${error.existingBooking.guest_name} с ${from} по ${to}.`;
+}
+
 export async function saveBookingAction(
   _prevState: BookingFormState,
   formData: FormData
 ): Promise<BookingFormState> {
-  const parsed = bookingFormSchema.safeParse({
+  const locale = resolveLocale(formData.get("locale"));
+  const messages = getMessages(locale);
+  const metaParsed = bookingMetaSchema.safeParse({
     bookingId: formData.get("bookingId") || undefined,
+    returnTo: formData.get("returnTo") || undefined
+  });
+  const parsed = createBookingSchema(locale).safeParse({
     apartment_id: formData.get("apartment_id"),
     guest_name: formData.get("guest_name"),
     guest_phone: formData.get("guest_phone"),
     check_in: formData.get("check_in"),
     check_out: formData.get("check_out"),
-    total_amount: formData.get("total_amount"),
+    currency: formData.get("currency"),
+    total_amount_original: formData.get("total_amount_original"),
     prepaid_amount: formData.get("prepaid_amount"),
     payment_status: formData.get("payment_status"),
     booking_status: formData.get("booking_status"),
-    notes: formData.get("notes"),
-    returnTo: formData.get("returnTo") || undefined
+    notes: formData.get("notes")
   });
 
   if (!parsed.success) {
     return {
-      error: "Review the booking details and try again.",
+      error:
+        locale === "uz"
+          ? "Bron ma'lumotlarini tekshirib, yana urinib ko'ring."
+          : "Проверьте данные брони и попробуйте снова.",
       fieldErrors: parsed.error.flatten().fieldErrors
+    };
+  }
+
+  if (!metaParsed.success) {
+    return {
+      error: messages.forms.saveError
     };
   }
 
@@ -106,7 +115,8 @@ export async function saveBookingAction(
         : null,
       check_in: parsed.data.check_in,
       check_out: parsed.data.check_out,
-      total_amount: parsed.data.total_amount,
+      currency: parsed.data.currency,
+      total_amount_original: parsed.data.total_amount_original,
       prepaid_amount: parsed.data.prepaid_amount,
       payment_status: parsed.data.payment_status,
       booking_status: parsed.data.booking_status,
@@ -115,9 +125,9 @@ export async function saveBookingAction(
 
     let booking: BookingRow;
 
-    if (parsed.data.bookingId) {
+    if (metaParsed.data.bookingId) {
       booking = await updateBooking(
-        parsed.data.bookingId,
+        metaParsed.data.bookingId,
         bookingPayload as BookingUpdateInput
       );
     } else {
@@ -126,11 +136,15 @@ export async function saveBookingAction(
 
     revalidateBookingRoutes(booking.apartment_id, booking.id);
 
-    redirect(getSafeReturnPath(parsed.data.returnTo) || `/bookings/${booking.id}/edit`);
+    redirect(
+      metaParsed.data.returnTo
+        ? getSafeReturnPath(metaParsed.data.returnTo)
+        : `/bookings/${booking.id}/edit`
+    );
   } catch (error) {
     if (error instanceof BookingConflictError) {
       return {
-        error: error.message
+        error: formatBookingConflictMessage(locale, error)
       };
     }
 
@@ -138,7 +152,9 @@ export async function saveBookingAction(
       error:
         error instanceof Error
           ? error.message
-          : "Unable to save the booking right now."
+          : locale === "uz"
+            ? "Bronni hozircha saqlab bo'lmadi."
+            : "Сейчас не удалось сохранить бронь."
     };
   }
 }
@@ -178,5 +194,49 @@ export async function deleteBookingAction(formData: FormData) {
 
   await deleteBooking(bookingId);
   revalidateBookingRoutes(existing.apartment_id, bookingId);
+  redirect(returnTo);
+}
+
+async function getExistingBookingOrRedirect(bookingId: string, returnTo: string) {
+  const booking = await getBookingById(bookingId);
+
+  if (!booking) {
+    redirect(returnTo);
+  }
+
+  return booking;
+}
+
+export async function checkInBookingAction(formData: FormData) {
+  const bookingId = String(formData.get("bookingId") || "");
+  const returnTo = getSafeReturnPath(
+    typeof formData.get("returnTo") === "string" ? String(formData.get("returnTo")) : null
+  );
+  const existing = await getExistingBookingOrRedirect(bookingId, returnTo);
+  const today = toIsoDate(new Date());
+
+  if (!canCheckInBooking(existing.booking_status, existing.check_in, today)) {
+    redirect(returnTo);
+  }
+
+  const updated = await checkInBooking(bookingId);
+  revalidateBookingRoutes(updated.apartment_id, bookingId);
+  redirect(returnTo);
+}
+
+export async function checkOutBookingAction(formData: FormData) {
+  const bookingId = String(formData.get("bookingId") || "");
+  const returnTo = getSafeReturnPath(
+    typeof formData.get("returnTo") === "string" ? String(formData.get("returnTo")) : null
+  );
+  const existing = await getExistingBookingOrRedirect(bookingId, returnTo);
+  const today = toIsoDate(new Date());
+
+  if (!canCheckOutBooking(existing.booking_status, existing.check_out, today)) {
+    redirect(returnTo);
+  }
+
+  const updated = await checkOutBooking(bookingId);
+  revalidateBookingRoutes(updated.apartment_id, bookingId);
   redirect(returnTo);
 }

@@ -3,7 +3,6 @@
 import { useEffect, useState } from "react";
 
 import { Button } from "@/components/ui/button";
-import { getMessages } from "@/lib/i18n/messages";
 import type { AppLocale } from "@/lib/types/domain";
 
 type AppErrorProps = {
@@ -27,7 +26,6 @@ function readLocaleFromCookie(): AppLocale {
 
 export default function AppError({ error, reset }: AppErrorProps) {
   const [locale, setLocale] = useState<AppLocale>("ru");
-  const messages = getMessages(locale);
 
   useEffect(() => {
     console.error(error);

@@ -477,7 +477,7 @@ export async function getReportMetrics(
       };
     });
 
-  const expenseCategoryBreakdown: ReportMetrics["expenseCategoryBreakdown"] = [
+  const expenseCategories: ExpenseRow["category"][] = [
     "cleaning",
     "repair",
     "supplies",
@@ -485,7 +485,9 @@ export async function getReportMetrics(
     "commission",
     "marketing",
     "other"
-  ].map((category) => ({
+  ];
+
+  const expenseCategoryBreakdown: ReportMetrics["expenseCategoryBreakdown"] = expenseCategories.map((category) => ({
     category,
     total: filteredExpenses
       .filter((expense: ExpenseRow) => expense.category === category)

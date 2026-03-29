@@ -32,6 +32,42 @@ type ListBookingFilters = {
   includeCancelled?: boolean;
 };
 
+function isMissingBookingMoneyColumnError(
+  error: { message?: string; code?: string } | null
+) {
+  if (!error) {
+    return false;
+  }
+
+  const message = error.message ?? "";
+
+  return (
+    error.code === "PGRST204" &&
+    message.includes("bookings") &&
+    (
+      message.includes("'currency'") ||
+      message.includes("'total_amount_original'") ||
+      message.includes("'total_amount_usd'") ||
+      message.includes("'exchange_rate_used'")
+    )
+  );
+}
+
+function toLegacyBookingPayload(input: BookingInput, totalAmountUsd: number): BookingInsert {
+  return {
+    apartment_id: input.apartment_id,
+    guest_name: input.guest_name,
+    guest_phone: input.guest_phone,
+    check_in: input.check_in,
+    check_out: input.check_out,
+    prepaid_amount: input.prepaid_amount,
+    payment_status: input.payment_status,
+    booking_status: input.booking_status,
+    notes: input.notes,
+    total_amount: totalAmountUsd
+  };
+}
+
 export async function listBookings(
   filters: ListBookingFilters = {}
 ): Promise<BookingRow[]> {
@@ -183,6 +219,20 @@ export async function createBooking(input: BookingInput): Promise<BookingRow> {
     .select("*")
     .single();
 
+  if (isMissingBookingMoneyColumnError(error)) {
+    const { data: legacyBookingResult, error: legacyError } = await supabase
+      .from("bookings")
+      .insert(toSupabaseInsert<"bookings">(toLegacyBookingPayload(validatedInput, totalAmountUsd)))
+      .select("*")
+      .single();
+
+    if (legacyError) {
+      throw new Error(`Не удалось создать бронь: ${legacyError.message}`);
+    }
+
+    return toTableRow<"bookings">(legacyBookingResult);
+  }
+
   if (error) {
     throw new Error(`Не удалось создать бронь: ${error.message}`);
   }
@@ -236,6 +286,25 @@ export async function updateBooking(
     .eq("id", id)
     .select("*")
     .single();
+
+  if (isMissingBookingMoneyColumnError(error)) {
+    const { data: legacyBookingResult, error: legacyError } = await supabase
+      .from("bookings")
+      .update(
+        toSupabaseUpdate<"bookings">(
+          toLegacyBookingPayload(validatedInput, totalAmountUsd)
+        )
+      )
+      .eq("id", id)
+      .select("*")
+      .single();
+
+    if (legacyError) {
+      throw new Error(`Не удалось обновить бронь: ${legacyError.message}`);
+    }
+
+    return toTableRow<"bookings">(legacyBookingResult);
+  }
 
   if (error) {
     throw new Error(`Не удалось обновить бронь: ${error.message}`);

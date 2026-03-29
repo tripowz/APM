@@ -36,6 +36,37 @@ type ListExpenseFilters = {
     | "all";
 };
 
+function isMissingExpenseMoneyColumnError(
+  error: { message?: string; code?: string } | null
+) {
+  if (!error) {
+    return false;
+  }
+
+  const message = error.message ?? "";
+
+  return (
+    error.code === "PGRST204" &&
+    message.includes("expenses") &&
+    (
+      message.includes("'currency'") ||
+      message.includes("'amount_original'") ||
+      message.includes("'amount_usd'") ||
+      message.includes("'exchange_rate_used'")
+    )
+  );
+}
+
+function toLegacyExpensePayload(input: ExpenseInput, amountUsd: number): ExpenseInsert {
+  return {
+    apartment_id: input.apartment_id,
+    category: input.category,
+    expense_date: input.expense_date,
+    note: input.note,
+    amount: amountUsd
+  };
+}
+
 export async function listExpenses(
   filters: ListExpenseFilters | string = {}
 ): Promise<ExpenseRow[]> {
@@ -131,6 +162,20 @@ export async function createExpense(input: ExpenseInput): Promise<ExpenseRow> {
     .select("*")
     .single();
 
+  if (isMissingExpenseMoneyColumnError(error)) {
+    const { data: legacyExpenseResult, error: legacyError } = await supabase
+      .from("expenses")
+      .insert(toSupabaseInsert<"expenses">(toLegacyExpensePayload(validatedInput, amountUsd)))
+      .select("*")
+      .single();
+
+    if (legacyError) {
+      throw new Error(`Не удалось создать расход: ${legacyError.message}`);
+    }
+
+    return toTableRow<"expenses">(legacyExpenseResult);
+  }
+
   if (error) {
     throw new Error(`Не удалось создать расход: ${error.message}`);
   }
@@ -182,6 +227,25 @@ export async function updateExpense(
     .eq("id", id)
     .select("*")
     .single();
+
+  if (isMissingExpenseMoneyColumnError(error)) {
+    const { data: legacyExpenseResult, error: legacyError } = await supabase
+      .from("expenses")
+      .update(
+        toSupabaseUpdate<"expenses">(
+          toLegacyExpensePayload(validatedInput, amountUsd)
+        )
+      )
+      .eq("id", id)
+      .select("*")
+      .single();
+
+    if (legacyError) {
+      throw new Error(`Не удалось обновить расход: ${legacyError.message}`);
+    }
+
+    return toTableRow<"expenses">(legacyExpenseResult);
+  }
 
   if (error) {
     throw new Error(`Не удалось обновить расход: ${error.message}`);

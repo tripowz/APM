@@ -12,7 +12,7 @@ import { SectionCard } from "@/components/shared/section-card";
 import { StatCard } from "@/components/shared/stat-card";
 import { StatusBadge } from "@/components/shared/status-badge";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { DatePicker } from "@/components/ui/date-picker";
 import { Select } from "@/components/ui/select";
 import {
   createEmptyReportMetrics,
@@ -182,9 +182,9 @@ export default async function ReportsPage({ searchParams }: ReportsPageProps) {
             </Link>
           </Button>
         </div>
-        <form className="grid gap-4 xl:grid-cols-[160px_160px_240px_220px_auto]">
-          <Input type="date" name="from" defaultValue={filters.from} />
-          <Input type="date" name="to" defaultValue={filters.to} />
+        <form className="grid gap-4 sm:grid-cols-2 xl:grid-cols-[160px_160px_240px_220px_auto]">
+          <DatePicker name="from" defaultValue={filters.from} locale={locale} />
+          <DatePicker name="to" defaultValue={filters.to} locale={locale} />
           <Select name="apartmentId" defaultValue={filters.apartmentId}>
             <option value="">{messages.calendar.allApartments}</option>
             {apartments.map((apartment: ApartmentRow) => (
@@ -201,7 +201,7 @@ export default async function ReportsPage({ searchParams }: ReportsPageProps) {
             <option value="checked_out">{messages.statuses.booking.checked_out}</option>
             <option value="cancelled">{messages.statuses.booking.cancelled}</option>
           </Select>
-          <Button type="submit" variant="secondary">
+          <Button type="submit" variant="secondary" className="w-full sm:w-auto">
             {messages.app.apply}
           </Button>
         </form>
@@ -305,16 +305,36 @@ export default async function ReportsPage({ searchParams }: ReportsPageProps) {
                     <p className="text-sm font-semibold text-foreground">
                       {item.apartmentTitle}
                     </p>
-                    <p className="text-sm text-muted-foreground">{item.bookingsCount}</p>
-                    <p className="text-sm text-foreground">
-                      {formatUsdAmount(item.revenue, displayCurrency, locale, rateSnapshot)}
-                    </p>
-                    <p className="text-sm text-foreground">
-                      {formatUsdAmount(item.expenses, displayCurrency, locale, rateSnapshot)}
-                    </p>
-                    <p className="text-sm font-semibold text-foreground">
-                      {formatUsdAmount(item.profit, displayCurrency, locale, rateSnapshot)}
-                    </p>
+                    <div className="flex items-center justify-between gap-3 md:block">
+                      <span className="text-[11px] font-medium uppercase tracking-[0.14em] text-muted-foreground md:hidden">
+                        {messages.apartments.bookings}
+                      </span>
+                      <p className="text-sm text-muted-foreground">{item.bookingsCount}</p>
+                    </div>
+                    <div className="flex items-center justify-between gap-3 md:block">
+                      <span className="text-[11px] font-medium uppercase tracking-[0.14em] text-muted-foreground md:hidden">
+                        {messages.reports.revenue}
+                      </span>
+                      <p className="text-sm text-foreground">
+                        {formatUsdAmount(item.revenue, displayCurrency, locale, rateSnapshot)}
+                      </p>
+                    </div>
+                    <div className="flex items-center justify-between gap-3 md:block">
+                      <span className="text-[11px] font-medium uppercase tracking-[0.14em] text-muted-foreground md:hidden">
+                        {messages.reports.expenses}
+                      </span>
+                      <p className="text-sm text-foreground">
+                        {formatUsdAmount(item.expenses, displayCurrency, locale, rateSnapshot)}
+                      </p>
+                    </div>
+                    <div className="flex items-center justify-between gap-3 md:block">
+                      <span className="text-[11px] font-medium uppercase tracking-[0.14em] text-muted-foreground md:hidden">
+                        {messages.reports.profit}
+                      </span>
+                      <p className="text-sm font-semibold text-foreground">
+                        {formatUsdAmount(item.profit, displayCurrency, locale, rateSnapshot)}
+                      </p>
+                    </div>
                   </Link>
                 ))}
               </div>
@@ -387,15 +407,30 @@ export default async function ReportsPage({ searchParams }: ReportsPageProps) {
                 <p className="text-sm font-semibold text-foreground">
                   {formatTrendLabel(item.label)}
                 </p>
-                <p className="text-sm text-muted-foreground">
-                  {formatUsdAmount(item.revenue, displayCurrency, locale, rateSnapshot)}
-                </p>
-                <p className="text-sm text-muted-foreground">
-                  {formatUsdAmount(item.expenses, displayCurrency, locale, rateSnapshot)}
-                </p>
-                <p className="text-sm font-semibold text-foreground">
-                  {formatUsdAmount(item.profit, displayCurrency, locale, rateSnapshot)}
-                </p>
+                <div className="flex items-center justify-between gap-3 sm:block">
+                  <span className="text-[11px] font-medium uppercase tracking-[0.14em] text-muted-foreground sm:hidden">
+                    {messages.reports.revenue}
+                  </span>
+                  <p className="text-sm text-muted-foreground">
+                    {formatUsdAmount(item.revenue, displayCurrency, locale, rateSnapshot)}
+                  </p>
+                </div>
+                <div className="flex items-center justify-between gap-3 sm:block">
+                  <span className="text-[11px] font-medium uppercase tracking-[0.14em] text-muted-foreground sm:hidden">
+                    {messages.reports.expenses}
+                  </span>
+                  <p className="text-sm text-muted-foreground">
+                    {formatUsdAmount(item.expenses, displayCurrency, locale, rateSnapshot)}
+                  </p>
+                </div>
+                <div className="flex items-center justify-between gap-3 sm:block">
+                  <span className="text-[11px] font-medium uppercase tracking-[0.14em] text-muted-foreground sm:hidden">
+                    {messages.reports.profit}
+                  </span>
+                  <p className="text-sm font-semibold text-foreground">
+                    {formatUsdAmount(item.profit, displayCurrency, locale, rateSnapshot)}
+                  </p>
+                </div>
               </div>
             ))}
           </div>

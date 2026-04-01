@@ -3,9 +3,10 @@
 import { startTransition } from "react";
 import { useRouter } from "next/navigation";
 
+import { Select } from "@/components/ui/select";
 import {
   DISPLAY_CURRENCY_COOKIE_NAME,
-  LOCALE_COOKIE_NAME,
+  LOCALE_COOKIE_NAME
 } from "@/lib/preferences/constants";
 import { getMessages } from "@/lib/i18n/messages";
 import type { AppLocale, DisplayCurrency } from "@/lib/types/domain";
@@ -47,30 +48,30 @@ export function AppPreferences({
       <label className="sr-only" htmlFor="locale-switcher">
         {messages.topbar.language}
       </label>
-      <select
+      <Select
         id="locale-switcher"
         value={locale}
-        onChange={(event) => handleLocaleChange(event.target.value as AppLocale)}
-        className="rounded-xl border border-border bg-white px-3 py-2 text-sm text-foreground"
+        onValueChange={(nextLocale) => handleLocaleChange(nextLocale as AppLocale)}
+        className="min-w-[126px]"
       >
         <option value="ru">{messages.topbar.languageRu}</option>
         <option value="uz">{messages.topbar.languageUz}</option>
-      </select>
+      </Select>
 
       <label className="sr-only" htmlFor="currency-switcher">
         {messages.topbar.currency}
       </label>
-      <select
+      <Select
         id="currency-switcher"
         value={displayCurrency}
-        onChange={(event) =>
-          handleCurrencyChange(event.target.value as DisplayCurrency)
+        onValueChange={(nextCurrency) =>
+          handleCurrencyChange(nextCurrency as DisplayCurrency)
         }
-        className="rounded-xl border border-border bg-white px-3 py-2 text-sm text-foreground"
+        className="min-w-[126px]"
       >
         <option value="USD">{messages.topbar.currencyUsd}</option>
         <option value="UZS">{messages.topbar.currencyUzs}</option>
-      </select>
+      </Select>
     </div>
   );
 }

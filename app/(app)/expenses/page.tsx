@@ -6,7 +6,7 @@ import { PageHeader } from "@/components/shared/page-header";
 import { SectionCard } from "@/components/shared/section-card";
 import { StatusBadge } from "@/components/shared/status-badge";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { DatePicker } from "@/components/ui/date-picker";
 import { Select } from "@/components/ui/select";
 import { listApartments } from "@/lib/data/apartments";
 import { getLatestUsdToUzsRate } from "@/lib/data/exchange-rates";
@@ -92,9 +92,9 @@ export default async function ExpensesPage({ searchParams }: ExpensesPageProps) 
         description={messages.expenses.filtersDesc}
         actions={<StatusBadge tone="info">{expenseRows.length}</StatusBadge>}
       >
-        <form className="grid gap-4 xl:grid-cols-[160px_160px_240px_220px_auto]">
-          <Input type="date" name="from" defaultValue={filters.from} />
-          <Input type="date" name="to" defaultValue={filters.to} />
+        <form className="grid gap-4 sm:grid-cols-2 xl:grid-cols-[160px_160px_240px_220px_auto]">
+          <DatePicker name="from" defaultValue={filters.from} locale={locale} />
+          <DatePicker name="to" defaultValue={filters.to} locale={locale} />
           <Select name="apartmentId" defaultValue={filters.apartmentId ?? ""}>
             <option value="">{messages.calendar.allApartments}</option>
             {apartments.map((apartment: ApartmentRow) => (
@@ -113,7 +113,7 @@ export default async function ExpensesPage({ searchParams }: ExpensesPageProps) 
             <option value="marketing">{messages.statuses.expenseCategory.marketing}</option>
             <option value="other">{messages.statuses.expenseCategory.other}</option>
           </Select>
-          <Button type="submit" variant="secondary">
+          <Button type="submit" variant="secondary" className="w-full sm:w-auto">
             {messages.app.apply}
           </Button>
         </form>
@@ -168,24 +168,37 @@ export default async function ExpensesPage({ searchParams }: ExpensesPageProps) 
                         {expense.note || messages.app.noData}
                       </p>
                     </div>
-                    <p className="text-sm text-muted-foreground">
-                      {formatShortDate(expense.expense_date, locale)}
-                    </p>
-                    <div>
+                    <div className="flex items-center justify-between gap-3 md:block">
+                      <span className="text-[11px] font-medium uppercase tracking-[0.14em] text-muted-foreground md:hidden">
+                        {messages.expenses.date}
+                      </span>
+                      <p className="text-sm text-muted-foreground">
+                        {formatShortDate(expense.expense_date, locale)}
+                      </p>
+                    </div>
+                    <div className="flex items-center justify-between gap-3 md:block">
+                      <span className="text-[11px] font-medium uppercase tracking-[0.14em] text-muted-foreground md:hidden">
+                        {messages.expenses.category}
+                      </span>
                       <StatusBadge tone="neutral" className="capitalize">
                         {messages.statuses.expenseCategory[expense.category]}
                       </StatusBadge>
                     </div>
-                    <p className="text-sm font-semibold text-foreground">
-                      {formatUsdAmount(
-                        Number(expense.amount_usd ?? expense.amount),
-                        displayCurrency,
-                        locale,
-                        rateSnapshot
-                      )}
-                    </p>
+                    <div className="flex items-center justify-between gap-3 md:block">
+                      <span className="text-[11px] font-medium uppercase tracking-[0.14em] text-muted-foreground md:hidden">
+                        {messages.expenses.amount}
+                      </span>
+                      <p className="text-sm font-semibold text-foreground">
+                        {formatUsdAmount(
+                          Number(expense.amount_usd ?? expense.amount),
+                          displayCurrency,
+                          locale,
+                          rateSnapshot
+                        )}
+                      </p>
+                    </div>
                     <div className="md:text-right">
-                      <Button asChild variant="outline" size="sm">
+                      <Button asChild variant="outline" size="sm" className="w-full md:w-auto">
                         <Link href={`/expenses/${expense.id}/edit`}>
                           {messages.app.edit}
                         </Link>

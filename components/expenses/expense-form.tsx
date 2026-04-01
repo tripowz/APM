@@ -9,6 +9,7 @@ import {
 } from "@/app/(app)/expenses/actions";
 import { FormMessage } from "@/components/shared/form-message";
 import { Button } from "@/components/ui/button";
+import { DatePicker } from "@/components/ui/date-picker";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
@@ -171,11 +172,11 @@ export function ExpenseForm({
           >
             {messages.expenses.form.expenseDate}
           </label>
-          <Input
+          <DatePicker
             id="expense_date"
             name="expense_date"
-            type="date"
             defaultValue={expense?.expense_date ?? ""}
+            locale={locale}
             required
           />
           <FormMessage>{state.fieldErrors?.expense_date?.[0]}</FormMessage>

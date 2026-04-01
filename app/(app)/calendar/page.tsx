@@ -86,7 +86,7 @@ export default async function CalendarPage({ searchParams }: CalendarPageProps) 
         description={messages.calendar.controlsDesc}
       >
         <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
-          <div className="flex items-center gap-3">
+          <div className="flex flex-wrap items-center gap-3">
             <Button asChild variant="outline" size="icon">
               <Link
                 href={`/calendar?month=${previousMonth}${apartmentId ? `&apartmentId=${apartmentId}` : ""}`}
@@ -108,7 +108,7 @@ export default async function CalendarPage({ searchParams }: CalendarPageProps) 
             </Button>
           </div>
 
-          <form className="grid gap-3 sm:grid-cols-[240px_auto]">
+          <form className="grid gap-3 sm:grid-cols-[minmax(0,240px)_auto]">
             <input type="hidden" name="month" value={monthKey} />
             <Select name="apartmentId" defaultValue={apartmentId ?? ""}>
               <option value="">{messages.calendar.allApartments}</option>
@@ -118,7 +118,7 @@ export default async function CalendarPage({ searchParams }: CalendarPageProps) 
                 </option>
               ))}
             </Select>
-            <Button type="submit" variant="secondary">
+            <Button type="submit" variant="secondary" className="w-full sm:w-auto">
               {messages.calendar.filter}
             </Button>
           </form>

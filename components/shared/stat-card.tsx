@@ -20,7 +20,7 @@ export function StatCard({
           <span className="text-sm font-medium text-muted-foreground">
             {label}
           </span>
-          <span className="text-3xl font-semibold tracking-tight text-foreground">
+          <span className="break-words text-[1.75rem] font-semibold tracking-tight text-foreground sm:text-3xl">
             {value}
           </span>
         </div>

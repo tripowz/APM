@@ -58,7 +58,7 @@ export default async function ApartmentsPage({
         title={messages.apartments.filtersTitle}
         description={messages.apartments.filtersDesc}
       >
-        <form className="grid gap-4 lg:grid-cols-[1fr_220px_auto]">
+        <form className="grid gap-4 sm:grid-cols-2 lg:grid-cols-[minmax(0,1fr)_220px_auto]">
           <div className="relative">
             <Search className="pointer-events-none absolute left-4 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
             <Input
@@ -73,7 +73,7 @@ export default async function ApartmentsPage({
             <option value="active">{messages.statuses.apartmentStatus.active}</option>
             <option value="inactive">{messages.statuses.apartmentStatus.inactive}</option>
           </Select>
-          <Button type="submit" variant="secondary">
+          <Button type="submit" variant="secondary" className="w-full sm:w-auto">
             {messages.app.apply}
           </Button>
         </form>

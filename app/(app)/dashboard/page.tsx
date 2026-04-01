@@ -259,16 +259,36 @@ export default async function DashboardPage() {
                   <p className="text-sm font-semibold text-foreground">
                     {item.apartmentTitle}
                   </p>
-                  <p className="text-sm text-muted-foreground">{item.bookingsCount}</p>
-                  <p className="text-sm text-foreground">
-                    {formatUsdAmount(item.revenue, displayCurrency, locale, rateSnapshot)}
-                  </p>
-                  <p className="text-sm text-foreground">
-                    {formatUsdAmount(item.expenses, displayCurrency, locale, rateSnapshot)}
-                  </p>
-                  <p className="text-sm font-semibold text-foreground">
-                    {formatUsdAmount(item.profit, displayCurrency, locale, rateSnapshot)}
-                  </p>
+                  <div className="flex items-center justify-between gap-3 md:block">
+                    <span className="text-[11px] font-medium uppercase tracking-[0.14em] text-muted-foreground md:hidden">
+                      {messages.apartments.bookings}
+                    </span>
+                    <p className="text-sm text-muted-foreground">{item.bookingsCount}</p>
+                  </div>
+                  <div className="flex items-center justify-between gap-3 md:block">
+                    <span className="text-[11px] font-medium uppercase tracking-[0.14em] text-muted-foreground md:hidden">
+                      {messages.reports.revenue}
+                    </span>
+                    <p className="text-sm text-foreground">
+                      {formatUsdAmount(item.revenue, displayCurrency, locale, rateSnapshot)}
+                    </p>
+                  </div>
+                  <div className="flex items-center justify-between gap-3 md:block">
+                    <span className="text-[11px] font-medium uppercase tracking-[0.14em] text-muted-foreground md:hidden">
+                      {messages.reports.expenses}
+                    </span>
+                    <p className="text-sm text-foreground">
+                      {formatUsdAmount(item.expenses, displayCurrency, locale, rateSnapshot)}
+                    </p>
+                  </div>
+                  <div className="flex items-center justify-between gap-3 md:block">
+                    <span className="text-[11px] font-medium uppercase tracking-[0.14em] text-muted-foreground md:hidden">
+                      {messages.reports.profit}
+                    </span>
+                    <p className="text-sm font-semibold text-foreground">
+                      {formatUsdAmount(item.profit, displayCurrency, locale, rateSnapshot)}
+                    </p>
+                  </div>
                 </Link>
               ))}
             </div>

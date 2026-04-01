@@ -9,6 +9,7 @@ import {
 } from "@/app/(app)/bookings/actions";
 import { FormMessage } from "@/components/shared/form-message";
 import { Button } from "@/components/ui/button";
+import { DatePicker } from "@/components/ui/date-picker";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
@@ -154,11 +155,11 @@ export function BookingForm({
           <label htmlFor="check_in" className="text-sm font-medium text-foreground">
             {messages.bookings.checkIn}
           </label>
-          <Input
+          <DatePicker
             id="check_in"
             name="check_in"
-            type="date"
             defaultValue={booking?.check_in ?? ""}
+            locale={locale}
             required
           />
           <FormMessage>{state.fieldErrors?.check_in?.[0]}</FormMessage>
@@ -168,11 +169,11 @@ export function BookingForm({
           <label htmlFor="check_out" className="text-sm font-medium text-foreground">
             {messages.bookings.checkOut}
           </label>
-          <Input
+          <DatePicker
             id="check_out"
             name="check_out"
-            type="date"
             defaultValue={booking?.check_out ?? ""}
+            locale={locale}
             required
           />
           <FormMessage>{state.fieldErrors?.check_out?.[0]}</FormMessage>

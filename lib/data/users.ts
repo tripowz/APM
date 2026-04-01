@@ -87,6 +87,7 @@ export async function createManagedUser(
   temporaryPassword: string;
 }> {
   const payload = userInviteSchema.parse(input);
+  const normalizedEmail = payload.email.trim().toLowerCase();
   const admin = createAdminClient();
   const { data: usersData, error: listError } = await admin.auth.admin.listUsers({
     page: 1,
@@ -98,7 +99,9 @@ export async function createManagedUser(
     throw new Error(`Failed to inspect existing users: ${listError.message}`);
   }
 
-  const existing = users.find((user) => user.email === payload.email);
+  const existing = users.find(
+    (user) => user.email?.trim().toLowerCase() === normalizedEmail
+  );
 
   if (existing) {
     throw new Error("A user with this email already exists.");
@@ -106,7 +109,7 @@ export async function createManagedUser(
 
   const temporaryPassword = `Apm!${crypto.randomUUID().replace(/-/g, "").slice(0, 10)}`;
   const { data, error } = await admin.auth.admin.createUser({
-    email: payload.email,
+    email: normalizedEmail,
     password: temporaryPassword,
     email_confirm: true,
     user_metadata: {
@@ -121,7 +124,7 @@ export async function createManagedUser(
   const profilePayload: UserInsert = {
     id: data.user.id,
     full_name: payload.full_name,
-    email: payload.email,
+    email: normalizedEmail,
     role: payload.role
   };
   const { error: profileError } = await admin
@@ -129,7 +132,13 @@ export async function createManagedUser(
     .upsert(toSupabaseUpsert<"users">(profilePayload));
 
   if (profileError) {
-    throw new Error(`Failed to save the user profile: ${profileError.message}`);
+    const { error: rollbackError } = await admin.auth.admin.deleteUser(data.user.id);
+
+    throw new Error(
+      rollbackError
+        ? `Failed to save the user profile: ${profileError.message}. Cleanup also failed: ${rollbackError.message}`
+        : `Failed to save the user profile: ${profileError.message}`
+    );
   }
 
   return {

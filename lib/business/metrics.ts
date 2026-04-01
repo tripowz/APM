@@ -11,7 +11,10 @@ import { listBookings } from "@/lib/data/bookings";
 import { listExpenses } from "@/lib/data/expenses";
 import {
   eachDayOfInterval,
+  getMonthKey,
   getMonthStart,
+  getTodayIso,
+  getValidIsoDate,
   parseIsoDate,
   toIsoDate
 } from "@/lib/dates";
@@ -128,8 +131,8 @@ export const EMPTY_DASHBOARD_METRICS: DashboardMetrics = {
   revenueTrend: []
 };
 
-function startOfTodayIso() {
-  return toIsoDate(new Date());
+function startOfTodayIso(timeZone = "UTC") {
+  return getTodayIso(timeZone);
 }
 
 function addDays(isoDate: string, amount: number) {
@@ -151,23 +154,25 @@ function overlapsRange(
   return checkIn < toExclusive && checkOut > from;
 }
 
-function normalizeReportFilters(filters: ReportFilters = {}) {
-  const monthStart = getMonthStart();
-  const from = filters.from ?? `${monthStart.getUTCFullYear()}-${String(monthStart.getUTCMonth() + 1).padStart(2, "0")}-01`;
-  const to = filters.to ?? addDays(from, 30);
+function normalizeReportFilters(filters: ReportFilters = {}, timeZone = "UTC") {
+  const monthStart = getMonthStart(undefined, timeZone);
+  const from = getValidIsoDate(filters.from) ?? `${getMonthKey(monthStart)}-01`;
+  const to = getValidIsoDate(filters.to) ?? startOfTodayIso(timeZone);
+  const normalizedTo = to < from ? from : to;
 
   return {
     from,
-    to,
+    to: normalizedTo,
     apartmentId: filters.apartmentId,
     bookingStatus: filters.bookingStatus ?? "all"
   };
 }
 
 export function createEmptyReportMetrics(
-  filters: ReportFilters = {}
+  filters: ReportFilters = {},
+  timeZone = "UTC"
 ): ReportMetrics {
-  const normalized = normalizeReportFilters(filters);
+  const normalized = normalizeReportFilters(filters, timeZone);
 
   return {
     filters: normalized,
@@ -190,11 +195,11 @@ export function createEmptyReportMetrics(
   };
 }
 
-export async function getDashboardMetrics(): Promise<DashboardMetrics> {
-  const today = startOfTodayIso();
+export async function getDashboardMetrics(timeZone = "UTC"): Promise<DashboardMetrics> {
+  const today = startOfTodayIso(timeZone);
   const sevenDaysAhead = addDays(today, 7);
-  const monthStart = getMonthStart();
-  const currentMonthFrom = `${monthStart.getUTCFullYear()}-${String(monthStart.getUTCMonth() + 1).padStart(2, "0")}-01`;
+  const monthStart = getMonthStart(undefined, timeZone);
+  const currentMonthFrom = `${getMonthKey(monthStart)}-01`;
   const nextMonth = new Date(
     Date.UTC(monthStart.getUTCFullYear(), monthStart.getUTCMonth() + 1, 1)
   );
@@ -334,9 +339,10 @@ export async function getDashboardMetrics(): Promise<DashboardMetrics> {
 }
 
 export async function getReportMetrics(
-  filters: ReportFilters = {}
+  filters: ReportFilters = {},
+  timeZone = "UTC"
 ): Promise<ReportMetrics> {
-  const normalized = normalizeReportFilters(filters);
+  const normalized = normalizeReportFilters(filters, timeZone);
   const toExclusive = addDays(normalized.to, 1);
 
   const [apartmentsResult, bookingsResult, expensesResult] = await Promise.all([
@@ -584,4 +590,3 @@ export async function getReportMetrics(
     expensesRows: filteredExpenses
   };
 }
-

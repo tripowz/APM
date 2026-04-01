@@ -1,5 +1,6 @@
 ﻿import { z } from "zod";
 
+import { isValidTimeZone } from "@/lib/dates";
 import type { AppLocale } from "@/lib/types/domain";
 
 export function createSettingsSchema(locale: AppLocale = "ru") {
@@ -35,6 +36,12 @@ export function createSettingsSchema(locale: AppLocale = "ru") {
           ? "Vaqt zonasi qiymati juda uzun."
           : "Значение часового пояса слишком длинное."
       )
+      .refine(isValidTimeZone, {
+        message:
+          locale === "uz"
+            ? "To'g'ri IANA vaqt zonasi kiriting, masalan Asia/Tashkent."
+            : "Укажите корректный IANA часовой пояс, например Asia/Tashkent."
+      })
   });
 }
 

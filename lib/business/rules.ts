@@ -24,9 +24,9 @@ export function isBlockingBookingStatus(status: string) {
 }
 
 export function canCheckInBooking(status: string, checkIn: string, today: string) {
-  return status === "confirmed" && checkIn === today;
+  return status === "confirmed" && checkIn <= today;
 }
 
 export function canCheckOutBooking(status: string, checkOut: string, today: string) {
-  return status === "checked_in" && checkOut === today;
+  return status === "checked_in" && checkOut <= today;
 }

@@ -17,7 +17,8 @@ import { Button } from "@/components/ui/button";
 import { canCheckInBooking, canCheckOutBooking } from "@/lib/business/rules";
 import { listApartments } from "@/lib/data/apartments";
 import { getBookingById } from "@/lib/data/bookings";
-import { formatShortDate, toIsoDate } from "@/lib/dates";
+import { getBusinessTimeZone } from "@/lib/data/settings";
+import { formatShortDate, getTodayIso } from "@/lib/dates";
 import { getMessages } from "@/lib/i18n/messages";
 import { getAppPreferences } from "@/lib/preferences";
 import type { Database } from "@/lib/supabase/database.types";
@@ -40,10 +41,11 @@ export default async function EditBookingPage({
 }: EditBookingPageProps) {
   const { id } = await params;
   const resolvedSearchParams = await searchParams;
-  const [{ locale }, bookingResult, apartmentsResult] = await Promise.all([
+  const [{ locale }, bookingResult, apartmentsResult, timeZone] = await Promise.all([
     getAppPreferences(),
     getBookingById(id),
-    listApartments({ status: "all" })
+    listApartments({ status: "all" }),
+    getBusinessTimeZone()
   ]);
   const messages = getMessages(locale);
 
@@ -60,7 +62,7 @@ export default async function EditBookingPage({
   const apartmentTitle = apartmentMap.get(booking.apartment_id) ?? null;
   const returnTo =
     resolvedSearchParams?.returnTo ?? `/apartments/${booking.apartment_id}`;
-  const todayIso = toIsoDate(new Date());
+  const todayIso = getTodayIso(timeZone);
   const showCheckIn = canCheckInBooking(booking.booking_status, booking.check_in, todayIso);
   const showCheckOut = canCheckOutBooking(
     booking.booking_status,

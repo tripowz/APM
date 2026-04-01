@@ -13,7 +13,8 @@ import { Button } from "@/components/ui/button";
 import { canCheckInBooking, canCheckOutBooking } from "@/lib/business/rules";
 import { getApartmentDetails } from "@/lib/data/apartments";
 import { getLatestUsdToUzsRate } from "@/lib/data/exchange-rates";
-import { formatShortDate, toIsoDate } from "@/lib/dates";
+import { getBusinessTimeZone } from "@/lib/data/settings";
+import { formatShortDate, getTodayIso } from "@/lib/dates";
 import { formatUsdAmount } from "@/lib/formatters";
 import { getExpenseCategoryLabel, getMessages } from "@/lib/i18n/messages";
 import { getAppPreferences } from "@/lib/preferences";
@@ -43,10 +44,11 @@ export default async function ApartmentDetailsPage({
   params
 }: ApartmentDetailsPageProps) {
   const { id } = await params;
-  const [detailsResult, preferences, rateSnapshot] = await Promise.all([
+  const [detailsResult, preferences, rateSnapshot, timeZone] = await Promise.all([
     getApartmentDetails(id),
     getAppPreferences(),
-    getLatestUsdToUzsRate().catch(() => null)
+    getLatestUsdToUzsRate().catch(() => null),
+    getBusinessTimeZone()
   ]);
 
   if (!detailsResult) {
@@ -59,7 +61,7 @@ export default async function ApartmentDetailsPage({
   const locale = preferences.locale;
   const displayCurrency = preferences.displayCurrency;
   const messages = getMessages(locale);
-  const todayIso = toIsoDate(new Date());
+  const todayIso = getTodayIso(timeZone);
 
   return (
     <div className="flex flex-col gap-6">

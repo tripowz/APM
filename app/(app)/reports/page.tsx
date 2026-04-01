@@ -21,10 +21,14 @@ import {
 } from "@/lib/business/metrics";
 import { listApartments } from "@/lib/data/apartments";
 import { getLatestUsdToUzsRate } from "@/lib/data/exchange-rates";
+import { getBusinessTimeZone } from "@/lib/data/settings";
 import {
+  getCurrentDateInTimeZone,
   formatMonthLabel,
   formatShortDate,
   getMonthStart,
+  getTodayIso,
+  getValidIsoDate,
   parseIsoDate,
   toIsoDate
 } from "@/lib/dates";
@@ -57,19 +61,22 @@ type ReportsPageProps = {
 
 export default async function ReportsPage({ searchParams }: ReportsPageProps) {
   const params = await searchParams;
-  const today = new Date();
-  const todayIso = toIsoDate(today);
+  const timeZone = await getBusinessTimeZone();
+  const today = getCurrentDateInTimeZone(timeZone);
+  const todayIso = getTodayIso(timeZone);
   const weekStart = new Date(today);
   weekStart.setUTCDate(today.getUTCDate() - ((today.getUTCDay() + 6) % 7));
   const weekEnd = new Date(weekStart);
   weekEnd.setUTCDate(weekStart.getUTCDate() + 6);
-  const monthStart = getMonthStart();
+  const monthStart = getMonthStart(undefined, timeZone);
   const monthEnd = new Date(
     Date.UTC(monthStart.getUTCFullYear(), monthStart.getUTCMonth() + 1, 0)
   );
+  const from = getValidIsoDate(params?.from) ?? toIsoDate(monthStart);
+  const toCandidate = getValidIsoDate(params?.to) ?? todayIso;
   const filters = {
-    from: params?.from ?? toIsoDate(monthStart),
-    to: params?.to ?? todayIso,
+    from,
+    to: toCandidate < from ? from : toCandidate,
     apartmentId: params?.apartmentId ?? "",
     bookingStatus: params?.bookingStatus ?? "all"
   } as const;
@@ -80,13 +87,13 @@ export default async function ReportsPage({ searchParams }: ReportsPageProps) {
       to: filters.to,
       apartmentId: filters.apartmentId || undefined,
       bookingStatus: filters.bookingStatus
-    }).catch((): ReportMetrics =>
+    }, timeZone).catch((): ReportMetrics =>
       createEmptyReportMetrics({
         from: filters.from,
         to: filters.to,
         apartmentId: filters.apartmentId || undefined,
         bookingStatus: filters.bookingStatus
-      })
+      }, timeZone)
     ),
     listApartments({ status: "all" }).catch((): ApartmentRow[] => []),
     getAppPreferences(),

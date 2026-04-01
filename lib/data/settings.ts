@@ -1,11 +1,12 @@
 import "server-only";
 
+import { isValidTimeZone } from "@/lib/dates";
 import { createClient } from "@/lib/supabase/server";
 import type { Database } from "@/lib/supabase/database.types";
 import {
   toTableRow,
   toMaybeTableRow,
-  toSupabaseUpsert,
+  toSupabaseUpsert
 } from "@/lib/supabase/tables";
 import {
   settingsSchema,
@@ -20,6 +21,10 @@ export const DEFAULT_SETTINGS = {
   currency: "USD",
   timezone: "Asia/Tashkent"
 } as const;
+
+export function normalizeBusinessTimeZone(value?: string | null) {
+  return isValidTimeZone(value) ? value : DEFAULT_SETTINGS.timezone;
+}
 
 export async function getSettings(): Promise<SettingsRow | null> {
   const supabase = await createClient();
@@ -51,4 +56,10 @@ export async function upsertSettings(input: SettingsInput): Promise<SettingsRow>
   }
 
   return toTableRow<"settings">(settingsResult);
+}
+
+export async function getBusinessTimeZone() {
+  const settings = await getSettings().catch((): SettingsRow | null => null);
+
+  return normalizeBusinessTimeZone(settings?.timezone);
 }

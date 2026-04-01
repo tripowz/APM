@@ -16,7 +16,8 @@ import {
   getBookingById,
   updateBooking
 } from "@/lib/data/bookings";
-import { formatShortDate, toIsoDate } from "@/lib/dates";
+import { getBusinessTimeZone } from "@/lib/data/settings";
+import { formatShortDate, getTodayIso } from "@/lib/dates";
 import { resolveLocale } from "@/lib/i18n/locale";
 import { getMessages } from "@/lib/i18n/messages";
 import type { Database } from "@/lib/supabase/database.types";
@@ -218,7 +219,7 @@ export async function checkInBookingAction(formData: FormData) {
     typeof formData.get("returnTo") === "string" ? String(formData.get("returnTo")) : null
   );
   const existing = await getExistingBookingOrRedirect(bookingId, returnTo);
-  const today = toIsoDate(new Date());
+  const today = getTodayIso(await getBusinessTimeZone());
 
   if (!canCheckInBooking(existing.booking_status, existing.check_in, today)) {
     redirect(returnTo);
@@ -235,7 +236,7 @@ export async function checkOutBookingAction(formData: FormData) {
     typeof formData.get("returnTo") === "string" ? String(formData.get("returnTo")) : null
   );
   const existing = await getExistingBookingOrRedirect(bookingId, returnTo);
-  const today = toIsoDate(new Date());
+  const today = getTodayIso(await getBusinessTimeZone());
 
   if (!canCheckOutBooking(existing.booking_status, existing.check_out, today)) {
     redirect(returnTo);

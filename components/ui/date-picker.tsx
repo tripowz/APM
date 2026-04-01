@@ -6,6 +6,7 @@ import { CalendarDays, ChevronDown } from "lucide-react";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { getLocaleTag } from "@/lib/currency";
+import { getValidIsoDate } from "@/lib/dates";
 import type { AppLocale } from "@/lib/types/domain";
 import { cn } from "@/lib/utils";
 
@@ -55,10 +56,13 @@ export function DatePicker({
 }: DatePickerProps) {
   const [isOpen, setIsOpen] = React.useState(false);
   const isControlled = value !== undefined;
-  const fallbackValue = defaultValue ?? "";
+  const fallbackValue = getValidIsoDate(defaultValue) ?? "";
   const [internalValue, setInternalValue] = React.useState(fallbackValue);
   const currentValue = isControlled ? value ?? "" : internalValue;
-  const selectedDate = currentValue ? parseLocalDate(currentValue) : undefined;
+  const normalizedValue = getValidIsoDate(currentValue) ?? "";
+  const selectedDate = normalizedValue ? parseLocalDate(normalizedValue) : undefined;
+  const normalizedMin = getValidIsoDate(min);
+  const normalizedMax = getValidIsoDate(max);
   const labelFormatter = React.useMemo(
     () =>
       new Intl.DateTimeFormat(getLocaleTag(locale), {
@@ -77,6 +81,18 @@ export function DatePicker({
 
   const resolvedPlaceholder =
     placeholder ?? (locale === "uz" ? "Sana tanlang" : "Выберите дату");
+
+  const displayPlaceholder =
+    locale === "ru" && !placeholder ? "Выберите дату" : resolvedPlaceholder;
+
+  const normalizedPlaceholder =
+    locale === "ru" && !placeholder
+      ? "\u0412\u044B\u0431\u0435\u0440\u0438\u0442\u0435 \u0434\u0430\u0442\u0443"
+      : displayPlaceholder;
+  const placeholderText =
+    locale === "ru" && !placeholder
+      ? "\u0412\u044B\u0431\u0435\u0440\u0438\u0442\u0435 \u0434\u0430\u0442\u0443"
+      : normalizedPlaceholder;
 
   const handleSelect = (date?: Date) => {
     if (!date) {
@@ -104,11 +120,11 @@ export function DatePicker({
   const isDateDisabled = (date: Date) => {
     const isoDate = toLocalIsoDate(date);
 
-    if (min && isoDate < min) {
+    if (normalizedMin && isoDate < normalizedMin) {
       return true;
     }
 
-    if (max && isoDate > max) {
+    if (normalizedMax && isoDate > normalizedMax) {
       return true;
     }
 
@@ -122,7 +138,7 @@ export function DatePicker({
           type="hidden"
           name={name}
           form={form}
-          value={currentValue}
+          value={normalizedValue}
           disabled={disabled}
         />
       ) : null}
@@ -141,12 +157,12 @@ export function DatePicker({
             <span
               className={cn(
                 "truncate",
-                !currentValue && "text-muted-foreground"
+                !normalizedValue && "text-muted-foreground"
               )}
             >
               {selectedDate
                 ? labelFormatter.format(selectedDate)
-                : resolvedPlaceholder}
+                : placeholderText}
             </span>
             <span className="flex shrink-0 items-center gap-2 text-muted-foreground">
               <CalendarDays className="size-4" />
@@ -163,7 +179,10 @@ export function DatePicker({
             mode="single"
             selected={selectedDate}
             onSelect={handleSelect}
-            defaultMonth={selectedDate ?? (min ? parseLocalDate(min) : new Date())}
+            defaultMonth={
+              selectedDate ??
+              (normalizedMin ? parseLocalDate(normalizedMin) : new Date())
+            }
             disabled={isDateDisabled}
           />
         </PopoverContent>

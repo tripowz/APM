@@ -11,8 +11,9 @@ import { Select } from "@/components/ui/select";
 import { listApartments } from "@/lib/data/apartments";
 import { getLatestUsdToUzsRate } from "@/lib/data/exchange-rates";
 import { listExpenses } from "@/lib/data/expenses";
+import { getBusinessTimeZone } from "@/lib/data/settings";
 import { getMessages } from "@/lib/i18n/messages";
-import { formatShortDate, getMonthStart, toIsoDate } from "@/lib/dates";
+import { formatShortDate, getMonthStart, getTodayIso, getValidIsoDate, toIsoDate } from "@/lib/dates";
 import { formatUsdAmount } from "@/lib/formatters";
 import { getAppPreferences } from "@/lib/preferences";
 import type { Database } from "@/lib/supabase/database.types";
@@ -39,11 +40,14 @@ type ExpensesPageProps = {
 
 export default async function ExpensesPage({ searchParams }: ExpensesPageProps) {
   const params = await searchParams;
-  const currentMonthStart = toIsoDate(getMonthStart());
-  const today = toIsoDate(new Date());
+  const timeZone = await getBusinessTimeZone();
+  const currentMonthStart = toIsoDate(getMonthStart(undefined, timeZone));
+  const today = getTodayIso(timeZone);
+  const from = getValidIsoDate(params?.from) ?? currentMonthStart;
+  const toCandidate = getValidIsoDate(params?.to) ?? today;
   const filters = {
-    from: params?.from ?? currentMonthStart,
-    to: params?.to ?? today,
+    from,
+    to: toCandidate < from ? from : toCandidate,
     apartmentId: params?.apartmentId,
     category: params?.category ?? "all"
   } as const;

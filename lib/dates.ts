@@ -2,6 +2,23 @@ import { getLocaleTag } from "@/lib/currency";
 import type { AppLocale } from "@/lib/types/domain";
 
 const formatterCache = new Map<string, Intl.DateTimeFormat>();
+const timeZoneFormatterCache = new Map<string, Intl.DateTimeFormat>();
+
+function getTimeZoneFormatter(timeZone: string) {
+  if (!timeZoneFormatterCache.has(timeZone)) {
+    timeZoneFormatterCache.set(
+      timeZone,
+      new Intl.DateTimeFormat("en-CA", {
+        timeZone,
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit"
+      })
+    );
+  }
+
+  return timeZoneFormatterCache.get(timeZone)!;
+}
 
 function getFormatter(
   locale: AppLocale,
@@ -23,9 +40,55 @@ function getFormatter(
   return formatterCache.get(key)!;
 }
 
+export function isValidTimeZone(value?: string | null): value is string {
+  if (!value) {
+    return false;
+  }
+
+  try {
+    new Intl.DateTimeFormat("en-US", { timeZone: value });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function getTimeZoneDateParts(date: Date, timeZone: string) {
+  const parts = getTimeZoneFormatter(timeZone).formatToParts(date);
+  const year = Number(parts.find((part) => part.type === "year")?.value);
+  const month = Number(parts.find((part) => part.type === "month")?.value);
+  const day = Number(parts.find((part) => part.type === "day")?.value);
+
+  return { year, month, day };
+}
+
 export function parseIsoDate(date: string) {
   const [year, month, day] = date.split("-").map(Number);
   return new Date(Date.UTC(year, month - 1, day));
+}
+
+export function isIsoDateString(value?: string | null) {
+  if (typeof value !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+    return false;
+  }
+
+  const parsedDate = parseIsoDate(value);
+
+  return !Number.isNaN(parsedDate.getTime()) && toIsoDate(parsedDate) === value;
+}
+
+export function getValidIsoDate(value?: string | null) {
+  return isIsoDateString(value) ? value : null;
+}
+
+function isIsoMonthString(value?: string | null): value is string {
+  if (typeof value !== "string" || !/^\d{4}-\d{2}$/.test(value)) {
+    return false;
+  }
+
+  const [year, month] = value.split("-").map(Number);
+
+  return Number.isInteger(year) && month >= 1 && month <= 12;
 }
 
 export function toIsoDate(date: Date) {
@@ -36,14 +99,24 @@ export function toIsoDate(date: Date) {
   ].join("-");
 }
 
-export function getMonthStart(month?: string) {
-  if (month && /^\d{4}-\d{2}$/.test(month)) {
+export function getCurrentDateInTimeZone(timeZone = "UTC", date = new Date()) {
+  const { year, month, day } = getTimeZoneDateParts(date, timeZone);
+
+  return new Date(Date.UTC(year, month - 1, day));
+}
+
+export function getTodayIso(timeZone = "UTC") {
+  return toIsoDate(getCurrentDateInTimeZone(timeZone));
+}
+
+export function getMonthStart(month?: string, timeZone = "UTC") {
+  if (isIsoMonthString(month)) {
     const [year, rawMonth] = month.split("-").map(Number);
     return new Date(Date.UTC(year, rawMonth - 1, 1));
   }
 
-  const now = new Date();
-  return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
+  const today = getCurrentDateInTimeZone(timeZone);
+  return new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), 1));
 }
 
 export function getMonthKey(date: Date) {
@@ -86,7 +159,7 @@ export function eachDayOfInterval(start: Date, end: Date) {
   return days;
 }
 
-export function getCalendarGrid(monthStart: Date) {
+export function getCalendarGrid(monthStart: Date, timeZone = "UTC") {
   const firstDay = new Date(monthStart);
   const month = firstDay.getUTCMonth();
   const gridStart = new Date(firstDay);
@@ -95,12 +168,13 @@ export function getCalendarGrid(monthStart: Date) {
   const lastDay = new Date(Date.UTC(firstDay.getUTCFullYear(), month + 1, 0));
   const gridEnd = new Date(lastDay);
   gridEnd.setUTCDate(lastDay.getUTCDate() + (6 - lastDay.getUTCDay()));
+  const todayIso = getTodayIso(timeZone);
 
   return eachDayOfInterval(gridStart, gridEnd).map((date: Date) => ({
     date,
     iso: toIsoDate(date),
     isCurrentMonth: date.getUTCMonth() === month,
-    isToday: toIsoDate(date) === toIsoDate(new Date())
+    isToday: toIsoDate(date) === todayIso
   }));
 }
 

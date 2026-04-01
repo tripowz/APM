@@ -32,16 +32,18 @@ type MonthCalendarProps = {
   bookings: CalendarBooking[];
   apartmentId?: string;
   locale?: AppLocale;
+  timeZone?: string;
 };
 
 export function MonthCalendar({
   monthStart,
   bookings,
   apartmentId,
-  locale = "ru"
+  locale = "ru",
+  timeZone = "UTC"
 }: MonthCalendarProps) {
   const messages = getMessages(locale);
-  const grid = getCalendarGrid(monthStart);
+  const grid = getCalendarGrid(monthStart, timeZone);
   const weekDays = Array.from({ length: 7 }).map((_, index) => {
     const date = new Date(Date.UTC(2026, 2, 29 + index));
     return formatWeekday(date, locale);

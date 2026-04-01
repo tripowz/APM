@@ -7,6 +7,7 @@ import { PageHeader } from "@/components/shared/page-header";
 import { SectionCard } from "@/components/shared/section-card";
 import { Button } from "@/components/ui/button";
 import { Select } from "@/components/ui/select";
+import { getBusinessTimeZone } from "@/lib/data/settings";
 import { addMonths, formatMonthLabel, getMonthKey, getMonthStart } from "@/lib/dates";
 import { listApartments } from "@/lib/data/apartments";
 import { listBookings } from "@/lib/data/bookings";
@@ -29,7 +30,8 @@ type CalendarPageProps = {
 
 export default async function CalendarPage({ searchParams }: CalendarPageProps) {
   const params = await searchParams;
-  const monthStart = getMonthStart(params?.month);
+  const timeZone = await getBusinessTimeZone();
+  const monthStart = getMonthStart(params?.month, timeZone);
   const monthKey = getMonthKey(monthStart);
   const apartmentId = params?.apartmentId;
 
@@ -134,6 +136,7 @@ export default async function CalendarPage({ searchParams }: CalendarPageProps) 
           bookings={enrichedBookings}
           apartmentId={apartmentId}
           locale={locale}
+          timeZone={timeZone}
         />
       </SectionCard>
     </div>

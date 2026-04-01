@@ -29,8 +29,9 @@ import { formatUsdAmount } from "@/lib/formatters";
 import { getMessages } from "@/lib/i18n/messages";
 import { listApartments } from "@/lib/data/apartments";
 import { getLatestUsdToUzsRate } from "@/lib/data/exchange-rates";
+import { getBusinessTimeZone } from "@/lib/data/settings";
 import { getAppPreferences } from "@/lib/preferences";
-import { toIsoDate } from "@/lib/dates";
+import { getTodayIso } from "@/lib/dates";
 import type { Database } from "@/lib/supabase/database.types";
 
 type ApartmentRow = Database["public"]["Tables"]["apartments"]["Row"];
@@ -38,8 +39,9 @@ type RecentBooking = DashboardMetrics["recentBookings"][number];
 type ApartmentPerformanceRow = DashboardMetrics["apartmentPerformance"][number];
 
 export default async function DashboardPage() {
+  const timeZone = await getBusinessTimeZone();
   const [metricsResult, apartmentsResult, preferences, rateSnapshot] = await Promise.all([
-    getDashboardMetrics().catch((): DashboardMetrics => EMPTY_DASHBOARD_METRICS),
+    getDashboardMetrics(timeZone).catch((): DashboardMetrics => EMPTY_DASHBOARD_METRICS),
     listApartments({ status: "all" }).catch((): ApartmentRow[] => []),
     getAppPreferences(),
     getLatestUsdToUzsRate().catch(() => null)
@@ -54,7 +56,7 @@ export default async function DashboardPage() {
   const locale = preferences.locale;
   const displayCurrency = preferences.displayCurrency;
   const messages = getMessages(locale);
-  const todayIso = toIsoDate(new Date());
+  const todayIso = getTodayIso(timeZone);
 
   const apartmentMap = new Map(
     apartments.map((apartment: ApartmentRow) => [apartment.id, apartment.title] as const)
